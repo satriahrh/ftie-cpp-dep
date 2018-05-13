@@ -1,8 +1,12 @@
 #ifndef BBS_H
 #define BBS_H
 
+#include "prime.h"
+
 #include <cstdint>
+#include <numeric>
 #include <vector>
+
 
 class bbs {
 private:
@@ -10,18 +14,11 @@ private:
   uint64_t x;
 
 public:
-  bbs(){
-    m = 21;
-    x = 4;
-  }
-  bbs(uint16_t p, uint16_t q, uint64_t s){
-    m = p * q;
-    x = s;
-  };
+  bbs();
+  bbs(uint16_t p, uint16_t q, uint64_t s);
   uint8_t next();
 
   std::vector<uint8_t> generate_keystream(uint_fast32_t n);
-
 };
 
 #endif

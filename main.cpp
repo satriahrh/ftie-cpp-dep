@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 
+
 int main(int argc, char* argv[]) {
   if (argc != 10) {
     std::cout << "Check given parameter is correct" << std::endl;
@@ -27,21 +28,29 @@ int main(int argc, char* argv[]) {
   ftie ftieApp;
   bool done = false;
   if (encrypt.compare(MODE) == 0) {
-    std::cout << MODE << "ing " << IN_FILE_PATH << " to " << OUT_FILE_PATH << " . . . " << std::endl;
-    auto start = std::chrono::high_resolution_clock::now();
-    ftieApp.encrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
-    auto finish = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = finish - start;
-    std::cout << "Done! Elapsed time: " << elapsed.count() << " seconds" << std::endl;
-    done = true;
+    try {
+      std::cout << MODE << "ing " << IN_FILE_PATH << " to " << OUT_FILE_PATH << " . . . " << std::endl;
+      auto start = std::chrono::high_resolution_clock::now();
+      ftieApp.encrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
+      auto finish = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> elapsed = finish - start;
+      std::cout << "Done! Elapsed time: " << elapsed.count() << " seconds" << std::endl;
+      done = true;
+    } catch (const char * msg) {
+      std::cout << "Oops, there seems to be a problem" << std::endl << "\tERROR: " << msg << std::endl;
+    }
   } else if (decrypt.compare(MODE) == 0) {
     std::cout << MODE << "ing " << IN_FILE_PATH << " to " << OUT_FILE_PATH << " . . . " << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
-    ftieApp.decrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
-    auto finish = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = finish - start;
-    std::cout << "Done! Elapsed time: " << elapsed.count() << " seconds"<< std::endl;
-    done = true;
+    try {
+      ftieApp.decrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
+      auto finish = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> elapsed = finish - start;
+      std::cout << "Done! Elapsed time: " << elapsed.count() << " seconds"<< std::endl;
+      done = true;
+    } catch (const char * msg) {
+      std::cout << "Oops, there seems to be a problem" << std::endl << "\tERROR: " << msg << std::endl;
+    }
   }
   if (!done) {
     std::cout << "Oh no!! Something is wrong!" << std::endl;
