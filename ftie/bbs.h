@@ -19,7 +19,6 @@ public:
   uint8_t next();
 
   std::vector<uint8_t> generate_keystream(uint_fast32_t n);
-
 };
 
 #endif
