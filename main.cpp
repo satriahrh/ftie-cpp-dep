@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 
+
 int main(int argc, char* argv[]) {
   if (argc != 10) {
     std::cout << "Check given parameter is correct" << std::endl;

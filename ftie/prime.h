@@ -1,8 +1,9 @@
-#ifndef BBS_H
-#define BBS_H
+#ifndef PRIME_H
+#define PRIME_H
 
 #include <cstdint>
 #include <vector>
+
 
 class prime {
 private:
@@ -11,16 +12,8 @@ private:
   void generate();
 
 public:
-  prime() {
-    N = UINT16_MAX;
-    generate();
-  }
-  prime(uint16_t maximumN) {
-    if (maximumN > UINT16_MAX)
-      throw "maximumN exceeds UINT16_MAX";
-    N = maximumN;
-    generate();
-  }
+  prime();
+  prime(uint16_t maximumN);
   bool is_prime(uint16_t n);
   uint16_t next_prime(uint16_t n);
 

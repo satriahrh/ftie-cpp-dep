@@ -7,6 +7,7 @@
 #include <iterator>
 #include <iostream>
 
+
 std::vector<uint8_t> ftie::read_plainfile(const char* filePath) {
   // https://stackoverflow.com/a/21802936/3649863
   // open the file:

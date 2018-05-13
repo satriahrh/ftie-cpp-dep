@@ -3,6 +3,19 @@
 #include <cmath>    // std::fabs
 #include <cstdint>
 
+
+prime::prime() {
+  N = UINT16_MAX;
+  generate();
+}
+
+prime::prime(uint16_t maximumN) {
+  if (maximumN > UINT16_MAX)
+    throw "maximumN exceeds UINT16_MAX";
+  N = maximumN;
+  generate();
+}
+
 uint16_t iroot(uint16_t n) {
   // https://en.wikipedia.org/wiki/Integer_square_root#Algorithm_using_Newton's_method
   float xk = n * 1.0;

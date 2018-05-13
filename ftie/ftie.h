@@ -9,6 +9,7 @@
 
 #include <vector>
 
+
 class ftie {
 private:
   std::vector<uint8_t> read_plainfile(const char* filePath);
@@ -20,8 +21,7 @@ private:
   std::vector<uint8_t> matrix_to_bytes(std::vector<std::vector<std::vector<uint8_t>>> plainmatrix);
   std::vector<uint8_t> strip_bytes(std::vector<uint8_t> plainbytes);
   void write_plainfile(std::vector<uint8_t>, const char* filePath);
-  //
-  // png::image<png::rgb_pixel> encrypt()
+
 public:
   void encrypt(
     uint16_t p, uint16_t q, uint64_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,

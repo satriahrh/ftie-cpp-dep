@@ -4,6 +4,21 @@
 #include <iostream>
 #include <map>
 
+
+acm::acm(uint_fast16_t acmA, uint_fast16_t acmB, uint_fast16_t acmN) {
+  if (acmA == 0)
+    throw "a == 0";
+  if (acmB == 0)
+    throw "b == 0";
+  if (acmN == 0)
+    throw "n == 0";
+  a = acmA;
+  b = acmB;
+  n = acmN;
+  if (a == b) type = 0;
+  else type = 1;
+}
+
 std::vector<std::vector<uint_fast16_t>> modular_matrix_multiplication(std::vector<std::vector<uint_fast16_t>> A, std::vector<std::vector<uint_fast16_t>> B, uint_fast16_t m) {
   uint_fast16_t rows = A.size();
   uint_fast16_t columns = B[0].size();
