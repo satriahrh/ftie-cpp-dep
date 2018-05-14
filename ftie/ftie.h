@@ -11,7 +11,7 @@
 
 
 class ftie {
-private:
+public:
   std::vector<uint8_t> read_plainfile(const char* filePath);
   std::vector<uint8_t> pad_bytes(std::vector<uint8_t> plainbytes);
   std::vector<std::vector<std::vector<uint8_t>>> bytes_to_matrix(std::vector<uint8_t> cipherbytes);
@@ -22,7 +22,6 @@ private:
   std::vector<uint8_t> strip_bytes(std::vector<uint8_t> plainbytes);
   void write_plainfile(std::vector<uint8_t>, const char* filePath);
 
-public:
   void encrypt(
     uint16_t p, uint16_t q, uint64_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
     const char* plainfileFilepath, const char* cipherimageFilepath
