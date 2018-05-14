@@ -11,8 +11,9 @@ std::vector<uint8_t> rt::encrypt(std::vector<uint8_t> plainbytes, std::vector<ui
   std::random_device generateRandom;
   for (uint_fast32_t i = 0; i < n; i ++) {
     uint8_t random = generateRandom();
-    cipherbytes[i * 2] = keystream[i] + 2 * plainbytes[i] +  random;
-    cipherbytes[i * 2 + 1] = 2 * keystream[i] + plainbytes[i] + random;
+    uint8_t key = keystream[i % keystream.size()];
+    cipherbytes[i * 2] = key + 2 * plainbytes[i] +  random;
+    cipherbytes[i * 2 + 1] = 2 * key + plainbytes[i] + random;
   }
   return cipherbytes;
 }
@@ -21,8 +22,9 @@ std::vector<uint8_t> rt::decrypt(std::vector<uint8_t> cipherbytes, std::vector<u
   int n = cipherbytes.size() / 2;
   std::vector<uint8_t> plainbytes(n);
   for (uint_fast32_t i = 0; i < n; i ++) {
-    uint8_t a = cipherbytes[i * 2] - keystream[i];
-    uint8_t b = cipherbytes[i * 2 + 1] - 2 * keystream[i];
+    uint8_t key = keystream[i % keystream.size()];
+    uint8_t a = cipherbytes[i * 2] - key;
+    uint8_t b = cipherbytes[i * 2 + 1] - 2 * key;
     plainbytes[i] = a - b;
   }
 
