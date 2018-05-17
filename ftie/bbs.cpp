@@ -11,7 +11,7 @@ bbs::bbs(){
   x = 4;
 }
 
-bbs::bbs(uint16_t p, uint16_t q, uint64_t s) {
+bbs::bbs(uint16_t p, uint16_t q, uint32_t s) {
   uint16_t nPrime = p > q? p : q;
   prime prm(nPrime + 1);
 
@@ -28,15 +28,16 @@ bbs::bbs(uint16_t p, uint16_t q, uint64_t s) {
   if (s == 0)
     throw "s = 0";
 
-  m = p * q;
+  uint32_t m32 = p * q;
 
-  if (s >= m)
+  if (s >= m32)
     throw "s > m";
 
-  if (std::gcd(m, s) != 1)
+  if (std::gcd(m32, s) != 1)
     throw "s is not co-prime to m";
 
   x = s;
+  m = uint64_t(m32);
 }
 
 uint8_t bbs::next() {
@@ -47,8 +48,9 @@ uint8_t bbs::next() {
 std::vector<uint8_t> bbs::generate_keystream(uint_fast32_t n) {
   std::vector<uint8_t> keystream(n);
   for(uint_fast32_t i = 0; i < n; i++) {
-    x = (x * x) % m;
-    keystream[i] = x % UINT8_MAX;
+    uint64_t x_64 = x * x % m;
+    x = x_64;
+    keystream[i] = x;
   }
   return keystream;
 }
