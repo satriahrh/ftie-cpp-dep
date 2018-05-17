@@ -8,7 +8,7 @@
 void generate(const char * pqsFilePath="", const char * primeFilePath="") {
   std::set<uint16_t> primes;
   std::string line;
-  primeFilePath = primeFilePath == ""? "./data/primes_2_bytes_for_p_q_fake" : primeFilePath;
+  primeFilePath = primeFilePath == ""? "./data/primes_2_bytes_for_p_q" : primeFilePath;
   std::ifstream primeFile(primeFilePath);
   while (std::getline(primeFile, line)) {
     primes.insert(std::stoi(line));
