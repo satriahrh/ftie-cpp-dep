@@ -16,14 +16,9 @@ bbs::bbs(uint16_t p, uint16_t q, uint32_t s) {
   prime prm;
 
   if (!prm.is_prime(p))
-    throw "p is not prime";
+    throw "p is not prime or p != 3 (mod 4)";
   if (!prm.is_prime(q))
-    throw "q is not prime";
-
-  if (p % 4 != 3)
-    throw "p != 3 (mod 4)";
-  if (q % 4 != 3)
-    throw "q != 3 (mod 4)";
+    throw "q is not prime or p != 3 (mod 4)";
 
   if (s == 0)
     throw "s = 0";
