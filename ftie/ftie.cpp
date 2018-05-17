@@ -1,5 +1,9 @@
 #include "ftie.h"
 
+#include "acm.h"
+#include "bbs.h"
+#include "rt.h"
+
 #include "png++/png.hpp"
 
 #include <cmath>

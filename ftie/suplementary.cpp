@@ -1,4 +1,4 @@
-#include "prime.h"
+#include "suplementary.h"
 
 #include <cmath>
 
