@@ -1,5 +1,9 @@
 #include "ftie.h"
 
+#include "acm.h"
+#include "bbs.h"
+#include "rt.h"
+
 #include "png++/png.hpp"
 
 #include <cmath>
@@ -130,7 +134,7 @@ std::vector<std::vector<std::vector<uint8_t>>> ftie::image_to_matrix(png::image<
 }
 
 void ftie::encrypt(
-  uint16_t p, uint16_t q, uint64_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+  uint16_t p, uint16_t q, uint32_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
   const char* plainfileFilepath, const char* cipherimageFilepath
 ) {
   std::vector<uint8_t> plainbytes = read_plainfile(plainfileFilepath);
@@ -151,7 +155,7 @@ void ftie::encrypt(
 }
 
 void ftie::decrypt(
-  uint16_t p, uint16_t q, uint64_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+  uint16_t p, uint16_t q, uint32_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
   const char* cipherimageFilepath, const char* plainfileFilepath
 ) {
   png::image<png::rgb_pixel> cipherimage(cipherimageFilepath);
