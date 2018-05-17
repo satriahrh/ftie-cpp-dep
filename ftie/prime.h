@@ -2,21 +2,16 @@
 #define PRIME_H
 
 #include <cstdint>
+#include <unordered_set>
 
 
 class prime{
 private:
-  uint32_t N;
-  bool * primes;
-
-  void generate();
+  std::unordered_set<uint16_t> primes;
 
 public:
   prime();
-  prime(uint32_t maximumN);
-  ~prime();
-  bool is_prime(uint32_t n);
-  uint32_t next_prime(uint32_t n);
+  bool is_prime(uint16_t n);
 };
 
 #endif
