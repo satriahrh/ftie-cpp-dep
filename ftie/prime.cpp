@@ -15,6 +15,10 @@ prime::prime(uint32_t maximumN) {
   generate();
 }
 
+prime::~prime() {
+  delete [] primes;
+}
+
 void prime::generate() {
   primes = new bool[N];
   uint16_t limit = iroot(N);

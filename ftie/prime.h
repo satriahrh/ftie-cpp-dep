@@ -14,6 +14,7 @@ private:
 public:
   prime();
   prime(uint32_t maximumN);
+  ~prime();
   bool is_prime(uint32_t n);
   uint32_t next_prime(uint32_t n);
 };
