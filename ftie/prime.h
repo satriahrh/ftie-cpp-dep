@@ -10,7 +10,7 @@ private:
   std::unordered_set<uint16_t> primes;
 
 public:
-  prime();
+  prime(const char * primeFilePath = "./data/primes_2_3mod4.bin");
   bool is_prime(uint16_t n);
 };
 

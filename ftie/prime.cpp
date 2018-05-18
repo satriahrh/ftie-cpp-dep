@@ -4,12 +4,11 @@
 #include <fstream>
 
 
-prime::prime() {
-  std::string line;
-  std::ifstream primeFile("./data/primes_2_bytes_for_p_q");
-  while (std::getline(primeFile, line)) {
-    primes.insert(std::stoi(line));
-  }
+prime::prime(const char * primeFilePath) {
+  uint16_t buffer;
+  std::ifstream primeFile(primeFilePath, std::ios::binary);
+  while (primeFile.read((char*)&buffer, 2))
+    primes.insert(buffer);
   primeFile.close();
 }
 
