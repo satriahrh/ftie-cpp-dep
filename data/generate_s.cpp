@@ -21,16 +21,17 @@ void generate(uint16_t pFrom, uint16_t pUntil, const char * pqsFilePath="", cons
   std::set<uint16_t>::iterator end = primes.end();
   std::set<uint16_t>::iterator beforeEnd = primes.end()--;
 
-  pqsFilePath = pqsFilePath == ""? "./data/s_for_p_and_q" : pqsFilePath;
-  std::stringstream ss;
-  ss << pqsFilePath << "_" << pFrom << "_" << pUntil;
-  std::ofstream pqsFile(ss.str().c_str(), std::ios::binary);
-
   for (std::set<uint16_t>::iterator p = ipFrom; p != ipUntil; p++) {
     for (std::set<uint16_t>::iterator q = std::next(p, 1); q != end; q++) {
       uint32_t m = *p * *q;
       uint16_t p_temp = *p;
       uint16_t q_temp = *q;
+
+      pqsFilePath = pqsFilePath == ""? "./data/s_for" : pqsFilePath;
+      std::stringstream ss;
+      ss << pqsFilePath << "_" << p_temp << "_" << q_temp;
+      std::ofstream pqsFile(ss.str().c_str(), std::ios::binary);
+
       std::cout << *p << " " << *q << '\n';
       pqsFile.write(reinterpret_cast<const char *>(&p_temp), 2);
       pqsFile.write(reinterpret_cast<const char *>(&q_temp), 2);
@@ -41,44 +42,44 @@ void generate(uint16_t pFrom, uint16_t pUntil, const char * pqsFilePath="", cons
           // std::cout << s << '\n';
         }
       }
-      m = 0;
-      pqsFile.write(reinterpret_cast<const char *>(&m), 4);
       // std::cout << m << '\n';
+      pqsFile.close();
     }
   }
-  pqsFile.close();
 }
 
-void read(const char * pqsFilePath="") {
-  // // THIS CODE IS FOR READING PURPOSE THAT YOU WILL NEED FOR KPA
-  pqsFilePath = pqsFilePath == ""? "./data/s_for_p_and_q" : pqsFilePath;
-  std::ifstream pqsFile(pqsFilePath, std::ios::binary);
-  uint32_t buffer;
-  uint32_t m;
-  uint16_t p;
-  uint16_t q;
-  uint32_t s;
-  bool isPQ = true;
-  while (pqsFile.read((char*)&buffer, 4)) {
-    if (buffer == 0) {
-      isPQ = true;
-      // std::cout << 0 << '\n';
-    } else if (isPQ) {
-      p = (uint16_t)(buffer & 0x0000FFFF);
-      q = (uint16_t)((buffer & 0xFFFF0000) >> 16);
-      m = p * q;
-      isPQ = false;
-      std::cout << p << " " << q << '\n';
-      // std::cout << m << '\n';
-    } else {
-      s = buffer;
-      // DO KPA HERE
-      // you can create bbs using p, q, and s here
-      // std::cout << s << '\n';
-    }
-  }
-  pqsFile.close();
-}
+// TODO update this due to changes in generate
+// deprecated
+// void read(const char * pqsFilePath="") {
+//   // // THIS CODE IS FOR READING PURPOSE THAT YOU WILL NEED FOR KPA
+//   pqsFilePath = pqsFilePath == ""? "./data/s_for_p_and_q" : pqsFilePath;
+//   std::ifstream pqsFile(pqsFilePath, std::ios::binary);
+//   uint32_t buffer;
+//   uint32_t m;
+//   uint16_t p;
+//   uint16_t q;
+//   uint32_t s;
+//   bool isPQ = true;
+//   while (pqsFile.read((char*)&buffer, 4)) {
+//     if (buffer == 0) {
+//       isPQ = true;
+//       // std::cout << 0 << '\n';
+//     } else if (isPQ) {
+//       p = (uint16_t)(buffer & 0x0000FFFF);
+//       q = (uint16_t)((buffer & 0xFFFF0000) >> 16);
+//       m = p * q;
+//       isPQ = false;
+//       std::cout << p << " " << q << '\n';
+//       // std::cout << m << '\n';
+//     } else {
+//       s = buffer;
+//       // DO KPA HERE
+//       // you can create bbs using p, q, and s here
+//       // std::cout << s << '\n';
+//     }
+//   }
+//   pqsFile.close();
+// }
 
 int main(int argc, char const *argv[]) {
   uint16_t pFrom = atoi(argv[1]);
