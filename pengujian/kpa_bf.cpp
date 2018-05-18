@@ -98,7 +98,7 @@ void attack(
   // BUILD P and Q from 2 bytes prime dataset
   vector<uint16_t> primeV;
   {
-    prime prm("/home/hafizhme/code/ftie-cpp/data/primes_2_3mod4.bin");
+    prime prm("./data/primes_2_3mod4.bin");
     primeV = prm.to_vector();
   }
   // FIND P Q S
