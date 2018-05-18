@@ -23,11 +23,11 @@ public:
   void write_plainfile(std::vector<uint8_t>, const char* filePath);
 
   void encrypt(
-    uint16_t p, uint16_t q, uint64_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+    uint16_t p, uint16_t q, uint32_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
     const char* plainfileFilepath, const char* cipherimageFilepath
   );
   void decrypt(
-    uint16_t p, uint16_t q, uint64_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+    uint16_t p, uint16_t q, uint32_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
     const char* cipherimageFilepath, const char* plainfileFilepath
   );
 };

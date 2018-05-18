@@ -11,11 +11,11 @@
 class bbs {
 private:
   uint64_t m;
-  uint64_t x;
+  uint32_t x;
 
 public:
   bbs();
-  bbs(uint16_t p, uint16_t q, uint64_t s);
+  bbs(uint16_t p, uint16_t q, uint32_t s);
   uint8_t next();
 
   std::vector<uint8_t> generate_keystream(uint_fast32_t n);
