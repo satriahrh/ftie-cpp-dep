@@ -27,3 +27,10 @@ uint64_t prime::next(uint16_t p) { // p should be in primes
 
   return it != primes.end()? *it : 0;
 }
+
+std::vector<uint16_t> prime::to_vector () {
+  std::vector<uint16_t> vec(primes.size());
+  std::copy(primes.begin(), primes.end(), vec.begin());
+
+  return vec;
+};
