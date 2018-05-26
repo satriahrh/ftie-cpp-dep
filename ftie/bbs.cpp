@@ -38,8 +38,7 @@ bbs::bbs(uint16_t p, uint16_t q, uint32_t s) {
 std::vector<uint8_t> bbs::generate_keystream(uint_fast32_t n) {
   std::vector<uint8_t> keystream(n);
   for(uint_fast32_t i = 0; i < n; i++) {
-    uint64_t x_64 = x * x % m;
-    x = x_64;
+    x = x * x % m;
     keystream[i] = x;
   }
   return keystream;
