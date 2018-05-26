@@ -23,16 +23,15 @@ bbs::bbs(uint16_t p, uint16_t q, uint32_t s) {
   if (s == 0)
     throw "s = 0";
 
-  uint32_t m32 = p * q;
+  m = p * q;
 
-  if (s >= m32)
+  if (s >= m)
     throw "s > m";
 
-  if (std::gcd(m32, s) != 1)
+  if (std::gcd(m, s) != 1)
     throw "s is not co-prime to m";
 
   x = s;
-  m = uint64_t(m32);
 }
 
 std::vector<uint8_t> bbs::generate_keystream(uint_fast32_t n) {
