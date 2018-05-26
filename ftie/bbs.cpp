@@ -12,7 +12,6 @@ bbs::bbs(){
 }
 
 bbs::bbs(uint16_t p, uint16_t q, uint32_t s) {
-  uint16_t nPrime = p > q? p : q;
   prime prm;
 
   if (!prm.is_prime(p))
