@@ -12,15 +12,13 @@
 
 class ftie {
 private:
-  std::vector<uint8_t> read_plainfile(const char* filePath);
-  std::vector<uint8_t> pad_bytes(std::vector<uint8_t> plainbytes);
-  std::vector<std::vector<std::vector<uint8_t>>> bytes_to_matrix(std::vector<uint8_t> cipherbytes);
-  png::image<png::rgb_pixel> matrix_to_image(std::vector<std::vector<std::vector<uint8_t>>> ciphermatrix);
+  std::vector<uint8_t> physical_file_to_bytes_sequence(const char* filePath);
+  std::vector<uint8_t> bytes_sequence_padding(std::vector<uint8_t> plainbytes);
+  png::image<png::rgb_pixel> bytes_sequence_to_image(std::vector<uint8_t> cipherbytes);
 
-  std::vector<std::vector<std::vector<uint8_t>>> image_to_matrix(png::image<png::rgb_pixel> cipherimage);
-  std::vector<uint8_t> matrix_to_bytes(std::vector<std::vector<std::vector<uint8_t>>> plainmatrix);
-  std::vector<uint8_t> strip_bytes(std::vector<uint8_t> plainbytes);
-  void write_plainfile(std::vector<uint8_t>, const char* filePath);
+  std::vector<uint8_t> image_to_bytes_sequence(png::image<png::rgb_pixel> cipherimage);
+  std::vector<uint8_t> bytes_sequence_stripping(std::vector<uint8_t> plainbytes);
+  void bytes_sequence_to_physical_file(std::vector<uint8_t>, const char* filePath);
 
 public:
   void encrypt(
