@@ -137,20 +137,19 @@ void ftie::encrypt(
   uint16_t p, uint16_t q, uint32_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
   const char* plainfileFilepath, const char* cipherimageFilepath
 ) {
-  std::vector<uint8_t> plainbytes = read_plainfile(plainfileFilepath);
-  plainbytes = pad_bytes(plainbytes);
+  std::vector<uint8_t> plainbytes_1 = physical_file_to_bytes_sequence(plainfileFilepath);
+  std::vector<uint8_t> plainbytes_2 = bytes_sequence_padding(plainbytes_1);
 
   bbs bbsBlock(p, q, s);
-  std::vector<uint8_t> keystream = bbsBlock.generate_keystream(plainbytes.size());
+  std::vector<uint8_t> keystream = bbsBlock.generate_keystream(plainbytes_2.size());
   rt rtBlock;
-  std::vector<uint8_t> cipherbytes = rtBlock.encrypt(plainbytes, keystream);
+  std::vector<uint8_t> cipherbytes = rtBlock.encrypt(plainbytes_2, keystream);
 
-  std::vector<std::vector<std::vector<uint8_t>>> plainmatrix = bytes_to_matrix(cipherbytes);
+  png::image<png::rgb_pixel> plainimage = bytes_sequence_to_image(cipherbytes);
 
   acm acmBlock(a, b, n);
-  std::vector<std::vector<std::vector<uint8_t>>> ciphermatrix = acmBlock.encrypt(plainmatrix);
+  std::vector<std::vector<std::vector<uint8_t>>> cipherimage = acmBlock.encrypt(plainimage);
 
-  png::image<png::rgb_pixel> cipherimage = matrix_to_image(ciphermatrix);
   cipherimage.write(cipherimageFilepath);
 }
 
@@ -159,17 +158,17 @@ void ftie::decrypt(
   const char* cipherimageFilepath, const char* plainfileFilepath
 ) {
   png::image<png::rgb_pixel> cipherimage(cipherimageFilepath);
-  std::vector<std::vector<std::vector<uint8_t>>> ciphermatrix = image_to_matrix(cipherimage);
-  acm acmBlock(a, b, n);
-  std::vector<std::vector<std::vector<uint8_t>>> plainmatrix = acmBlock.decrypt(ciphermatrix);
 
-  std::vector<uint8_t> cipherbytes = matrix_to_bytes(plainmatrix);
+  acm acmBlock(a, b, n);
+  std::vector<std::vector<std::vector<uint8_t>>> plainimage = acmBlock.decrypt(cipherimage);
+
+  std::vector<uint8_t> cipherbytes = image_to_bytes_sequence(plainimage);
 
   bbs bbsBlock(p, q, s);
   std::vector<uint8_t> keystream = bbsBlock.generate_keystream(cipherbytes.size());
   rt rtBlock;
-  std::vector<uint8_t> plainbytes = rtBlock.decrypt(cipherbytes, keystream);
+  std::vector<uint8_t> plainbytes_2 = rtBlock.decrypt(cipherbytes, keystream);
 
-  plainbytes = strip_bytes(plainbytes);
-  write_plainfile(plainbytes, plainfileFilepath);
+  plainbytes_1 = bytes_sequence_stripping(plainbytes_2);
+  bytes_sequence_to_physical_file(plainbytes_1, plainfileFilepath);
 }
