@@ -1,7 +1,5 @@
 #include "bbs.h"
 
-#include "prime.h"
-
 #include <cstdint>
 #include <vector>
 
@@ -12,24 +10,7 @@ bbs::bbs(){
 }
 
 bbs::bbs(uint16_t p, uint16_t q, uint32_t s) {
-  prime prm;
-
-  if (!prm.is_prime(p))
-    throw "p is not prime or p != 3 (mod 4)";
-  if (!prm.is_prime(q))
-    throw "q is not prime or p != 3 (mod 4)";
-
-  if (s == 0)
-    throw "s = 0";
-
   m = p * q;
-
-  if (s >= m)
-    throw "s > m";
-
-  if (std::gcd(m, s) != 1)
-    throw "s is not co-prime to m";
-
   x = s;
 }
 

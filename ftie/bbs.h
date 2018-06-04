@@ -1,8 +1,6 @@
 #ifndef BBS_H
 #define BBS_H
 
-#include "prime.h"
-
 #include <cstdint>
 #include <numeric>
 #include <vector>
