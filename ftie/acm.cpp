@@ -5,12 +5,6 @@
 
 
 acm::acm(uint_fast16_t acmA, uint_fast16_t acmB, uint_fast16_t acmN) {
-  if (acmA == 0)
-    throw "a == 0";
-  if (acmB == 0)
-    throw "b == 0";
-  if (acmN == 0)
-    throw "n == 0";
   a = acmA;
   b = acmB;
   n = acmN;
