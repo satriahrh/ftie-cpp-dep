@@ -25,13 +25,12 @@ int main(int argc, char* argv[]) {
   std::string encrypt("encrypt");
   std::string decrypt("decrypt");
 
-  ftie ftieApp;
   bool done = false;
   if (encrypt.compare(MODE) == 0) {
     try {
       std::cout << MODE << "ing " << IN_FILE_PATH << " to " << OUT_FILE_PATH << " . . . " << std::endl;
       auto start = std::chrono::high_resolution_clock::now();
-      ftieApp.encrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
+      ftie::encrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
       auto finish = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> elapsed = finish - start;
       std::cout << "Done! Elapsed time: " << elapsed.count() << " seconds" << std::endl;
@@ -43,7 +42,7 @@ int main(int argc, char* argv[]) {
     std::cout << MODE << "ing " << IN_FILE_PATH << " to " << OUT_FILE_PATH << " . . . " << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
     try {
-      ftieApp.decrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
+      ftie::decrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
       auto finish = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> elapsed = finish - start;
       std::cout << "Done! Elapsed time: " << elapsed.count() << " seconds"<< std::endl;
