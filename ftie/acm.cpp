@@ -6,15 +6,11 @@
 #include <map>
 
 
-acm::acm(uint_fast16_t acmA, uint_fast16_t acmB, uint_fast16_t acmN) {
-  a = acmA;
-  b = acmB;
-  n = acmN;
-  if (a == b) type = 0;
-  else type = 1;
-}
-
-std::vector<std::vector<uint_fast16_t>> modular_matrix_multiplication(std::vector<std::vector<uint_fast16_t>> A, std::vector<std::vector<uint_fast16_t>> B, uint_fast16_t m) {
+std::vector<std::vector<uint_fast16_t>> modular_matrix_multiplication(
+  std::vector<std::vector<uint_fast16_t>> A,
+  std::vector<std::vector<uint_fast16_t>> B,
+  uint_fast16_t m
+) {
   uint_fast16_t rows = A.size();
   uint_fast16_t columns = B[0].size();
   uint_fast16_t intersection = A.size();
@@ -31,7 +27,10 @@ std::vector<std::vector<uint_fast16_t>> modular_matrix_multiplication(std::vecto
   return Ret;
 }
 
-std::vector<std::vector<uint_fast16_t>> modular_matrix_exponentiation(std::vector<std::vector<uint_fast16_t>> B, uint_fast16_t e, uint_fast16_t m) {
+std::vector<std::vector<uint_fast16_t>> modular_matrix_exponentiation(
+  std::vector<std::vector<uint_fast16_t>> B,
+  uint_fast16_t e, uint_fast16_t m
+) {
   if (e == 0) {
     uint_fast16_t N = B.size();
     std::vector<std::vector<uint_fast16_t>> identity(N, std::vector<uint_fast16_t>(N));
@@ -56,7 +55,9 @@ std::vector<std::vector<uint_fast16_t>> modular_matrix_exponentiation(std::vecto
   return modular_matrix_multiplication(D, D, m);
 }
 
-uint_fast16_t fibonacci(uint_fast16_t n, uint_fast16_t m=UINT_FAST16_MAX, uint_fast16_t a=1) {
+uint_fast16_t fibonacci(
+  uint_fast16_t n, uint_fast16_t m=UINT_FAST16_MAX, uint_fast16_t a=1
+) {
   static std::map<uint_fast16_t, uint_fast16_t> cache{{0, 0}, {1, 1}};
 
   auto found = cache.find(n);
@@ -69,7 +70,9 @@ uint_fast16_t fibonacci(uint_fast16_t n, uint_fast16_t m=UINT_FAST16_MAX, uint_f
   return result;
 }
 
-std::vector<std::vector<std::vector<uint_fast16_t>>> acm::mapping_equal(uint_fast16_t N) {
+std::vector<std::vector<std::vector<uint_fast16_t>>> mapping_equal(
+  uint_fast16_t a, uint_fast16_t b, uint_fast16_t n, uint_fast16_t N
+) {
   std::vector<std::vector<std::vector<uint_fast16_t>>> map(N, std::vector<std::vector<uint_fast16_t>> (N, std::vector<uint_fast16_t> (2)));
   for (uint_fast16_t x = 0; x < N; x++) {
     for (uint_fast16_t y = 0; y < N; y++) {
@@ -80,7 +83,9 @@ std::vector<std::vector<std::vector<uint_fast16_t>>> acm::mapping_equal(uint_fas
   return map;
 }
 
-std::vector<std::vector<std::vector<uint_fast16_t>>> acm::mapping_general(uint_fast16_t N) {
+std::vector<std::vector<std::vector<uint_fast16_t>>> mapping_general(
+  uint_fast16_t a, uint_fast16_t b, uint_fast16_t n, uint_fast16_t N
+) {
   std::vector<std::vector<uint_fast16_t>> A = {
     {1, a},
     {b, 1 + a * b}
@@ -96,39 +101,51 @@ std::vector<std::vector<std::vector<uint_fast16_t>>> acm::mapping_general(uint_f
   return map;
 }
 
-std::vector<std::vector<std::vector<uint_fast16_t>>> acm::get_map(uint_fast16_t N) {
+std::vector<std::vector<std::vector<uint_fast16_t>>> get_map(
+  uint_fast16_t a, uint_fast16_t b, uint_fast16_t n, uint_fast16_t N
+) {
   std::vector<std::vector<std::vector<uint_fast16_t>>> map;
-  if (type == 0)
-    map = mapping_equal(N);
+  if (a == b)
+    map = mapping_equal(a, b, n, N);
   else
-    map = mapping_general(N);
+    map = mapping_general(a, b, n, N);
 
   return map;
 }
 
-png::image<png::rgb_pixel> acm::encrypt(png::image<png::rgb_pixel> plainimage) {
-  uint_fast16_t N = plainimage.get_height();
-  std::vector<std::vector<std::vector<uint_fast16_t>>> map = get_map(N);
+namespace ftie {
+  namespace acm {
+    png::image<png::rgb_pixel> encrypt(
+      uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+      png::image<png::rgb_pixel> plainimage
+    ) {
+      uint_fast16_t N = plainimage.get_height();
+      std::vector<std::vector<std::vector<uint_fast16_t>>> map = get_map(a, b, n, N);
 
-  png::image< png::rgb_pixel> cipherimage(N, N);
-  for (uint_fast16_t x = 0; x < N; x++) {
-    for (uint_fast16_t y = 0; y < N; y++) {
-      std::vector<uint_fast16_t> pos = map[x][y];
-      cipherimage[y][x] = plainimage[pos[1]][pos[0]];
+      png::image< png::rgb_pixel> cipherimage(N, N);
+      for (uint_fast16_t x = 0; x < N; x++) {
+        for (uint_fast16_t y = 0; y < N; y++) {
+          std::vector<uint_fast16_t> pos = map[x][y];
+          cipherimage[y][x] = plainimage[pos[1]][pos[0]];
+        }
+      }
+      return cipherimage;
+    }
+
+    png::image<png::rgb_pixel> decrypt(
+      uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+      png::image<png::rgb_pixel> cipherimage
+    ) {
+      uint_fast16_t N = cipherimage.get_height();
+      std::vector<std::vector<std::vector<uint_fast16_t>>> map = get_map(a, b, n, N);
+      png::image< png::rgb_pixel> plainimage(N, N);
+      for (uint_fast16_t x = 0; x < N; x++) {
+        for (uint_fast16_t y = 0; y < N; y++) {
+          std::vector<uint_fast16_t> pos = map[x][y];
+          plainimage[pos[1]][pos[0]] = cipherimage[y][x];
+        }
+      }
+      return plainimage;
     }
   }
-  return cipherimage;
-}
-
-png::image<png::rgb_pixel> acm::decrypt(png::image<png::rgb_pixel> cipherimage) {
-  uint_fast16_t N = cipherimage.get_height();
-  std::vector<std::vector<std::vector<uint_fast16_t>>> map = get_map(N);
-  png::image< png::rgb_pixel> plainimage(N, N);
-  for (uint_fast16_t x = 0; x < N; x++) {
-    for (uint_fast16_t y = 0; y < N; y++) {
-      std::vector<uint_fast16_t> pos = map[x][y];
-      plainimage[pos[1]][pos[0]] = cipherimage[y][x];
-    }
-  }
-  return plainimage;
 }
