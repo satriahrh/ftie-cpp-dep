@@ -6,3 +6,6 @@
 ## Requirements
 - `g++ (Ubuntu 8-20180424-0ubuntu1~16.04.1) 8.0.1 20180424 (experimental) [trunk revision 259590]`
 - `png++-0.2.9`
+
+## System Block Diagram
+![System Block Diagram](data/system-block-diagram.png)

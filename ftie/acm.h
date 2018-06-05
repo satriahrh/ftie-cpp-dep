@@ -1,6 +1,8 @@
 #ifndef ACM_H
 #define ACM_H
 
+#include "png++/png.hpp"
+
 #include <cstdint>
 #include <vector>
 
@@ -17,8 +19,8 @@ private:
 
 public:
   acm(uint_fast16_t acmA, uint_fast16_t acmB, uint_fast16_t acmN);
-  std::vector<std::vector<std::vector<uint8_t>>> encrypt(std::vector<std::vector<std::vector<uint8_t>>> plainmatrix);
-  std::vector<std::vector<std::vector<uint8_t>>> decrypt(std::vector<std::vector<std::vector<uint8_t>>> ciphermatrix);
+  png::image<png::rgb_pixel> encrypt(png::image<png::rgb_pixel> plainimage);
+  png::image<png::rgb_pixel> decrypt(png::image<png::rgb_pixel> cipherimage);
 };
 
 #endif
