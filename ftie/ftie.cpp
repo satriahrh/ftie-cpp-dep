@@ -12,7 +12,7 @@
 #include <iostream>
 
 
-std::vector<uint8_t> ftie::read_plainfile(const char* filePath) {
+std::vector<uint8_t> ftie::physical_file_to_bytes_sequence(const char* filePath) {
   // https://stackoverflow.com/a/21802936/3649863
   // open the file:
   std::ifstream file(filePath, std::ios::in | std::ios::binary);
@@ -37,14 +37,14 @@ std::vector<uint8_t> ftie::read_plainfile(const char* filePath) {
   return vec;
 }
 
-void ftie::write_plainfile(std::vector<uint8_t> plainbytes, const char* filePath) {
+void ftie::bytes_sequence_to_physical_file(std::vector<uint8_t> bytes, const char* filePath) {
   std::ofstream outfile(filePath, std::ios::out | std::ios::binary);
-  outfile.write((const char*)&plainbytes[0], plainbytes.size());
+  outfile.write((const char*)&bytes[0], bytes.size());
   outfile.close();
 }
 
-std::vector<uint8_t> ftie::pad_bytes(std::vector<uint8_t> plainbytes) {
-  uint_fast32_t len_bts = plainbytes.size();
+void ftie::bytes_sequence_padding(std::vector<uint8_t> bytes) {
+  uint_fast32_t len_bts = bytes.size();
   uint_fast32_t len_rdt = len_bts * 2;
   float len_pixels = std::ceil(len_rdt / 3.0);
   //
@@ -57,98 +57,64 @@ std::vector<uint8_t> ftie::pad_bytes(std::vector<uint8_t> plainbytes) {
   uint_fast32_t exp_len_bts = exp_len_rdt / 2;
 
   std::vector<uint8_t> pad(exp_len_bts - len_bts);
-  plainbytes.insert(plainbytes.end(), pad.begin(), pad.end());
-  return plainbytes;
+  bytes.insert(bytes.end(), pad.begin(), pad.end());
 }
 
-std::vector<uint8_t> ftie::strip_bytes(std::vector<uint8_t> plainbytes) {
-  std::vector<uint8_t>::iterator it = plainbytes.end() - 1;
+void ftie::bytes_sequence_stripping(std::vector<uint8_t> bytes) {
+  std::vector<uint8_t>::iterator it = bytes.end() - 1;
   while (*(it - 1) == 0) it--;
-  plainbytes.erase(it, plainbytes.end());
-  return plainbytes;
+  bytes.erase(it, bytes.end());
 }
 
-std::vector<std::vector<std::vector<uint8_t>>> ftie::bytes_to_matrix(std::vector<uint8_t> cipherbytes) {
-  uint_fast32_t len_rdt = cipherbytes.size();
-  float len_pixels = std::ceil(len_rdt / 3.0);
+png::image<png::rgb_pixel> ftie::bytes_sequence_to_image(std::vector<uint8_t> bytes) {
+  uint_fast32_t n = bytes.size();
+  float np = std::ceil(n / 3.0);
   //
-  uint_fast16_t N = uint_fast16_t(std::ceil(std::sqrt(len_pixels)));
+  uint_fast16_t N = uint_fast16_t(std::ceil(std::sqrt(np)));
   if (N % 2 == 1)
       N += 1;
   //
-  std::vector<std::vector<std::vector<uint8_t>>> plainmatrix(N, std::vector<std::vector<uint8_t>> (N, std::vector<uint8_t> (3)));
-  uint_fast32_t i = 0;
-  for(uint_fast32_t x = 0; x < N; x++) {
-    for(uint_fast32_t y = 0; y < N; y++) {
-      plainmatrix[x][y][0] = cipherbytes[i++];
-      plainmatrix[x][y][1] = cipherbytes[i++];
-      plainmatrix[x][y][2] = cipherbytes[i++];
-    }
+  png::image< png::rgb_pixel> image(N, N);
+  for (uint_fast32_t i = 0; i < n; i+=3) {
+    uint_fast16_t x = i / (3 * N);
+    uint_fast16_t y = i / N;
+    image[y][x].red = bytes[i];
+    image[y][x].green = bytes[i + 1];
+    image[y][x].blue = bytes[i + 2];
   }
-  return plainmatrix;
+  return image;
 }
 
-std::vector<uint8_t> ftie::matrix_to_bytes(std::vector<std::vector<std::vector<uint8_t>>> plainmatrix) {
-  uint_fast16_t len_matrix = plainmatrix.size();
-  uint_fast16_t len_pixels = len_matrix * len_matrix;
-  uint_fast32_t N = len_pixels * 3;
-  std::vector<uint8_t> cipherbytes(N);
-  uint_fast32_t i = 0;
-  for(uint_fast32_t x = 0; x < len_matrix; x++) {
-    for(uint_fast32_t y = 0; y < len_matrix; y++) {
-      cipherbytes[i++] = plainmatrix[x][y][0];
-      cipherbytes[i++] = plainmatrix[x][y][1];
-      cipherbytes[i++] = plainmatrix[x][y][2];
-    }
+std::vector<uint8_t> ftie::image_to_bytes_sequence(png::image<png::rgb_pixel> image) {
+  png::uint_16 N = image.get_height();
+  uint_fast32_t n = N * N;
+  std::vector<uint8_t> bytes(n);
+  for (uint_fast32_t i = 0; i < n; i+=3) {
+    uint_fast16_t x = i / (3 * N);
+    uint_fast16_t y = i / N;
+    bytes[i] = image[y][x].red;
+    bytes[i + 1] = image[y][x].green;
+    bytes[i  +2] = image[y][x].blue;
   }
-  return cipherbytes;
-}
-
-png::image<png::rgb_pixel> ftie::matrix_to_image(std::vector<std::vector<std::vector<uint8_t>>> ciphermatrix) {
-  png::uint_16 N = ciphermatrix.size();
-  png::image< png::rgb_pixel> cipherimage(N, N);
-  for (png::uint_16 x = 0; x < N; x++) {
-    for (png::uint_16 y = 0; y < N; y++) {
-      // image[y][x] = png::rgb_pixel(0, 0, x);
-      cipherimage[y][x] = png::rgb_pixel(
-        ciphermatrix[x][y][0],
-        ciphermatrix[x][y][1],
-        ciphermatrix[x][y][2]
-      );
-    }
-  }
-  return cipherimage;
-}
-
-std::vector<std::vector<std::vector<uint8_t>>> ftie::image_to_matrix(png::image<png::rgb_pixel> cipherimage) {
-  png::uint_16 N = cipherimage.get_height();
-  std::vector<std::vector<std::vector<uint8_t>>> ciphermatrix(N, std::vector<std::vector<uint8_t>> (N, std::vector<uint8_t> (3)));
-  for (png::uint_16 x = 0; x < N; x++) {
-    for (png::uint_16 y = 0; y < N; y++) {
-      ciphermatrix[x][y][0] = cipherimage[y][x].red;
-      ciphermatrix[x][y][1] = cipherimage[y][x].green;
-      ciphermatrix[x][y][2] = cipherimage[y][x].blue;
-    }
-  }
-  return ciphermatrix;
+  return bytes;
 }
 
 void ftie::encrypt(
   uint16_t p, uint16_t q, uint32_t s, uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
   const char* plainfileFilepath, const char* cipherimageFilepath
 ) {
-  std::vector<uint8_t> plainbytes_1 = physical_file_to_bytes_sequence(plainfileFilepath);
-  std::vector<uint8_t> plainbytes_2 = bytes_sequence_padding(plainbytes_1);
+  std::vector<uint8_t> plainbytes = physical_file_to_bytes_sequence(plainfileFilepath);
+  bytes_sequence_padding(plainbytes);
 
   bbs bbsBlock(p, q, s);
-  std::vector<uint8_t> keystream = bbsBlock.generate_keystream(plainbytes_2.size());
+  std::vector<uint8_t> keystream = bbsBlock.generate_keystream(plainbytes.size());
   rt rtBlock;
-  std::vector<uint8_t> cipherbytes = rtBlock.encrypt(plainbytes_2, keystream);
+  std::vector<uint8_t> cipherbytes = rtBlock.encrypt(plainbytes, keystream);
 
   png::image<png::rgb_pixel> plainimage = bytes_sequence_to_image(cipherbytes);
 
   acm acmBlock(a, b, n);
-  std::vector<std::vector<std::vector<uint8_t>>> cipherimage = acmBlock.encrypt(plainimage);
+  png::image<png::rgb_pixel> cipherimage = acmBlock.encrypt(plainimage);
 
   cipherimage.write(cipherimageFilepath);
 }
@@ -160,15 +126,15 @@ void ftie::decrypt(
   png::image<png::rgb_pixel> cipherimage(cipherimageFilepath);
 
   acm acmBlock(a, b, n);
-  std::vector<std::vector<std::vector<uint8_t>>> plainimage = acmBlock.decrypt(cipherimage);
+  png::image<png::rgb_pixel> plainimage = acmBlock.decrypt(cipherimage);
 
   std::vector<uint8_t> cipherbytes = image_to_bytes_sequence(plainimage);
 
   bbs bbsBlock(p, q, s);
-  std::vector<uint8_t> keystream = bbsBlock.generate_keystream(cipherbytes.size());
+  std::vector<uint8_t> keystream = bbsBlock.generate_keystream(cipherbytes.size() / 2);
   rt rtBlock;
-  std::vector<uint8_t> plainbytes_2 = rtBlock.decrypt(cipherbytes, keystream);
+  std::vector<uint8_t> plainbytes = rtBlock.decrypt(cipherbytes, keystream);
 
-  plainbytes_1 = bytes_sequence_stripping(plainbytes_2);
-  bytes_sequence_to_physical_file(plainbytes_1, plainfileFilepath);
+  bytes_sequence_stripping(plainbytes);
+  bytes_sequence_to_physical_file(plainbytes, plainfileFilepath);
 }
