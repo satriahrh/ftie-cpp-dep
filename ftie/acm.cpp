@@ -1,5 +1,7 @@
 #include "acm.h"
 
+#include "png++/png.hpp"
+
 #include <cstdint>
 #include <map>
 
@@ -104,32 +106,29 @@ std::vector<std::vector<std::vector<uint_fast16_t>>> acm::get_map(uint_fast16_t 
   return map;
 }
 
-std::vector<std::vector<std::vector<uint8_t>>> acm::encrypt(std::vector<std::vector<std::vector<uint8_t>>> plainmatrix) {
-  uint_fast16_t N = plainmatrix.size();
+png::image<png::rgb_pixel> acm::encrypt(png::image<png::rgb_pixel> plainimage) {
+  uint_fast16_t N = plainimage.get_height();
   std::vector<std::vector<std::vector<uint_fast16_t>>> map = get_map(N);
-  std::vector<std::vector<std::vector<uint8_t>>> ciphermatrix(N, std::vector<std::vector<uint8_t>> (N, std::vector<uint8_t> (3)));
+
+  png::image< png::rgb_pixel> cipherimage(N, N);
   for (uint_fast16_t x = 0; x < N; x++) {
     for (uint_fast16_t y = 0; y < N; y++) {
       std::vector<uint_fast16_t> pos = map[x][y];
-      ciphermatrix[x][y][0] = plainmatrix[pos[0]][pos[1]][0];
-      ciphermatrix[x][y][1] = plainmatrix[pos[0]][pos[1]][1];
-      ciphermatrix[x][y][2] = plainmatrix[pos[0]][pos[1]][2];
+      cipherimage[y][x] = plainimage[pos[1]][pos[0]];
     }
   }
-  return ciphermatrix;
+  return cipherimage;
 }
 
-std::vector<std::vector<std::vector<uint8_t>>> acm::decrypt(std::vector<std::vector<std::vector<uint8_t>>> ciphermatrix) {
-  uint_fast16_t N = ciphermatrix.size();
+png::image<png::rgb_pixel> acm::decrypt(png::image<png::rgb_pixel> cipherimage) {
+  uint_fast16_t N = cipherimage.get_height();
   std::vector<std::vector<std::vector<uint_fast16_t>>> map = get_map(N);
-  std::vector<std::vector<std::vector<uint8_t>>> plainmatrix(N, std::vector<std::vector<uint8_t>>(N, std::vector<uint8_t>(3)));
+  png::image< png::rgb_pixel> plainimage(N, N);
   for (uint_fast16_t x = 0; x < N; x++) {
     for (uint_fast16_t y = 0; y < N; y++) {
       std::vector<uint_fast16_t> pos = map[x][y];
-      plainmatrix[pos[0]][pos[1]][0] = ciphermatrix[x][y][0];
-      plainmatrix[pos[0]][pos[1]][1] = ciphermatrix[x][y][1];
-      plainmatrix[pos[0]][pos[1]][2] = ciphermatrix[x][y][2];
+      plainimage[pos[1]][pos[0]] = cipherimage[y][x];
     }
   }
-  return plainmatrix;
+  return plainimage;
 }
