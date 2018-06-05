@@ -13,11 +13,11 @@
 class ftie {
 private:
   std::vector<uint8_t> physical_file_to_bytes_sequence(const char* filePath);
-  std::vector<uint8_t> bytes_sequence_padding(std::vector<uint8_t> plainbytes);
+  void bytes_sequence_padding(std::vector<uint8_t> plainbytes);
   png::image<png::rgb_pixel> bytes_sequence_to_image(std::vector<uint8_t> cipherbytes);
 
   std::vector<uint8_t> image_to_bytes_sequence(png::image<png::rgb_pixel> cipherimage);
-  std::vector<uint8_t> bytes_sequence_stripping(std::vector<uint8_t> plainbytes);
+  void bytes_sequence_stripping(std::vector<uint8_t> plainbytes);
   void bytes_sequence_to_physical_file(std::vector<uint8_t>, const char* filePath);
 
 public:
