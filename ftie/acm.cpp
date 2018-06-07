@@ -113,12 +113,25 @@ std::vector<std::vector<std::vector<uint_fast16_t>>> get_map(
   return map;
 }
 
+void validation(
+  uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+  png::image<png::rgb_pixel> img
+) {
+  if ((0 == a) || (0 == b) || (0 == n))
+    throw "a or b or n is not in (0, inf)";
+  if (img.get_height() != img.get_width())
+    throw "image is not square";
+  if (img.get_height() < 2)
+    throw "img's N < 2";
+}
+
 namespace ftie {
   namespace acm {
     png::image<png::rgb_pixel> encrypt(
       uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
       png::image<png::rgb_pixel> plainimage
     ) {
+      validation(a, b, n, plainimage);
       uint_fast16_t N = plainimage.get_height();
       std::vector<std::vector<std::vector<uint_fast16_t>>> map = get_map(a, b, n, N);
 
@@ -136,6 +149,7 @@ namespace ftie {
       uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
       png::image<png::rgb_pixel> cipherimage
     ) {
+      validation(a, b, n, cipherimage);
       uint_fast16_t N = cipherimage.get_height();
       std::vector<std::vector<std::vector<uint_fast16_t>>> map = get_map(a, b, n, N);
       png::image< png::rgb_pixel> plainimage(N, N);
