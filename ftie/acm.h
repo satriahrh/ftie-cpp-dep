@@ -18,6 +18,19 @@ namespace ftie {
       png::image<png::rgb_pixel> cipherimage
     );
   }
+
+  namespace deprecated {
+    namespace acm {
+      std::vector<uint8_t> encrypt(
+        uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+        std::vector<uint8_t> plaintext
+      );
+      std::vector<uint8_t> decrypt(
+        uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+        std::vector<uint8_t> ciphertext
+      );
+    }
+  }
 }
 
 #endif

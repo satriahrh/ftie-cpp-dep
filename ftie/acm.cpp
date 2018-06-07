@@ -125,6 +125,44 @@ void validation(
     throw "img's N < 2";
 }
 
+uint_fast16_t iroot(uint_fast32_t n) {
+  // https://en.wikipedia.org/wiki/Integer_square_root#Algorithm_using_Newton's_method
+  float xk = n * 1.0;
+  float xkp1 = (xk + (n / xk)) / 2.0;
+  while (std::fabs(xkp1 - xk) >= 1) {
+    xk = xkp1;
+    xkp1 = (xk + (n / xk)) / 2.0;
+  }
+  return uint_fast16_t(xkp1);
+}
+
+std::vector<uint_fast32_t> get_map_deprecated(
+  uint_fast16_t a, uint_fast16_t b, uint_fast32_t n
+) {
+  uint_fast16_t N = iroot(n) + 1;
+  std::vector<uint_fast32_t> M;
+  for (uint_fast16_t x = 0; x < N; x++) {
+    for (uint_fast16_t y = 0; y < N; y++) {
+      uint_fast16_t X = (x + (a * y % N)) % N;
+      uint_fast16_t Y = ((b * x % N) + (((a * b % N) + 1) * y % N)) % N;
+      uint_fast32_t S = N * X + Y;
+      if ((0 <= S) && (S < n))
+        M.push_back(S);
+    }
+  }
+  return M;
+}
+
+void validation(
+  uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+  std::vector<uint8_t> text
+) {
+  if ((0 == a) || (0 == b) || (0 == n))
+    throw "a or b or n is not in (0, inf)";
+  if (text.size() < 2)
+    throw "text's N < 2";
+}
+
 namespace ftie {
   namespace acm {
     png::image<png::rgb_pixel> encrypt(
@@ -160,6 +198,45 @@ namespace ftie {
         }
       }
       return plainimage;
+    }
+  }
+
+  namespace deprecated {
+    namespace acm {
+      std::vector<uint8_t> encrypt(
+        uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+        std::vector<uint8_t> plaintext
+      ) {
+        validation(a, b, n, plaintext);
+        uint_fast32_t n_p = plaintext.size();
+        std::vector<uint8_t> ciphertext(n_p);
+        std::vector<uint_fast32_t> map = get_map_deprecated(a, b, n_p);
+        for (uint_fast16_t t = 0; t < n; t++) {
+          for (uint_fast32_t i = 0; i < n_p; i++) {
+            ciphertext[i] = plaintext[map[i]];
+          }
+          plaintext = ciphertext;
+        }
+        return ciphertext;
+      }
+
+      std::vector<uint8_t> decrypt(
+        uint_fast16_t a, uint_fast16_t b, uint_fast16_t n,
+        std::vector<uint8_t> ciphertext
+      ) {
+        validation(a, b, n, ciphertext);
+        uint_fast32_t n_p = ciphertext.size();
+        std::vector<uint8_t> plaintext(n_p);
+        std::vector<uint_fast32_t> map = get_map_deprecated(a, b, n_p);
+
+        for (uint_fast16_t t = 0; t < n; t++) {
+          for (uint_fast32_t i = 0; i < n_p; i++) {
+            plaintext[map[i]] = ciphertext[i];
+          }
+          ciphertext = plaintext;
+        }
+        return plaintext;
+      }
     }
   }
 }
