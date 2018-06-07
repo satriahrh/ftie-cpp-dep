@@ -9,7 +9,7 @@
 
 namespace ftie {
   namespace bbs {
-    std::vector<uint8_t> generate_keystream(
+    std::vector<uint8_t> generate_randoms(
       uint16_t p, uint16_t q, uint32_t s, uint_fast32_t n
     ) {
       {
@@ -24,7 +24,7 @@ namespace ftie {
       }
       if (!(p % 4 == 3) || !(q % 4 == 3))
         throw "p or q is not congruence to 3 mod 4";
-        
+
       uint64_t m = p * q;
 
       if (!(1 < s) || !(s < m))
@@ -33,12 +33,12 @@ namespace ftie {
         throw "gcd(s,m) != 1";
 
       uint64_t x = s;
-      std::vector<uint8_t> keystream(n);
+      std::vector<uint8_t> kbits_randoms(n);
       for(uint_fast32_t i = 0; i < n; i++) {
         x = x * x % m;\
-        keystream[i] = x;
+        kbits_randoms[i] = x;
       }
-      return keystream;
+      return kbits_randoms;
     }
   }
 }

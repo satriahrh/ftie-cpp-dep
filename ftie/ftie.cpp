@@ -110,7 +110,7 @@ namespace ftie {
     std::vector<uint8_t> plainbytes = physical_file_to_bytes_sequence(plainfileFilepath);
     plainbytes = bytes_sequence_padding(plainbytes);
 
-    std::vector<uint8_t> keystream = ftie::bbs::generate_keystream(p, q, s, plainbytes.size());
+    std::vector<uint8_t> keystream = ftie::bbs::generate_randoms(p, q, s, plainbytes.size());
     std::vector<uint8_t> cipherbytes = ftie::rt::encrypt(plainbytes, keystream);
 
     png::image<png::rgb_pixel> plainimage = bytes_sequence_to_image(cipherbytes);
@@ -130,7 +130,7 @@ namespace ftie {
 
     std::vector<uint8_t> cipherbytes = image_to_bytes_sequence(plainimage);
 
-    std::vector<uint8_t> keystream = ftie::bbs::generate_keystream(p, q, s, cipherbytes.size() / 2);
+    std::vector<uint8_t> keystream = ftie::bbs::generate_randoms(p, q, s, cipherbytes.size() / 2);
     std::vector<uint8_t> plainbytes = ftie::rt::decrypt(cipherbytes, keystream);
 
     plainbytes = bytes_sequence_stripping(plainbytes);

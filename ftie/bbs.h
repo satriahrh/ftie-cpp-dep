@@ -7,7 +7,7 @@
 
 namespace ftie {
   namespace bbs {
-    std::vector<uint8_t> generate_keystream(
+    std::vector<uint8_t> generate_randoms(
       uint16_t p, uint16_t q, uint32_t s, uint_fast32_t n
     );
   }
