@@ -11,7 +11,6 @@
 struct npcr {
   uint_fast32_t sum;
   uint_fast32_t n;
-  float value;
 };
 
 npcr calculate_npcr(
@@ -38,7 +37,6 @@ npcr calculate_npcr(
   npcr ret;
   ret.sum = sum;
   ret.n = n;
-  ret.value = sum  / (n * 1.0);
 
   return ret;
 }
@@ -62,6 +60,9 @@ int main(int argc, char const *argv[]) {
     uint16_t q = 57467;
     uint32_t s = 1369318511;
 
+    std::cout << "bytes | deprecated | proposed | N*N" << '\n';
+    std::cout << "--- | --- | --- | ---" << '\n';
+
     for (int ip = 1000000; ip <= 10000000; ip += 1000000) {
       // plainfile
       std::vector<uint8_t> bytes(ip);
@@ -72,7 +73,6 @@ int main(int argc, char const *argv[]) {
       outfile.close();
       npcr npcr_1;
       npcr npcr_2;
-      std::cout << ip << '\n';
       {
         ftie::deprecated::encrypt(keystream, a, b, n, "experiment/dum/plainfile", "experiment/dum/1.png");
         png::image<png::rgb_pixel> cp_1("experiment/dum/1.png");
@@ -86,8 +86,10 @@ int main(int argc, char const *argv[]) {
         png::image<png::rgb_pixel> cp_2("experiment/dum/2.png");
         npcr_2 = calculate_npcr(cp_1, cp_2);
       }
-      std::cout << npcr_1.sum << '/' << npcr_1.n << '=' << npcr_1.value << '\n';
-      std::cout << npcr_2.sum << '/' << npcr_2.n << '=' << npcr_2.value << '\n';
+      std::cout << ip << " | ";
+      std::cout << npcr_1.sum << " | ";
+      std::cout << npcr_2.sum << " | ";
+      std::cout << npcr_1.n;
       std::cout << '\n';
     }
   } catch (const char * msg) {
