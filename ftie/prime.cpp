@@ -22,7 +22,7 @@ prime::prime(uint16_t maximumN) {
   uint16_t limit = iroot(N);
   for(uint16_t i = 2; i <= limit; i++)
     if (!primes[i])
-      for(uint16_t j = i + i; j < N; j += i)
+      for(uint32_t j = i + i; j < N; j += i)
         primes[j] = true;
 }
 
