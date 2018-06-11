@@ -17,9 +17,9 @@ int main(int argc, char* argv[]) {
   uint16_t P = atoi(argv[4]);
   uint16_t Q = atoi(argv[5]);
   uint64_t S = atoi(argv[6]);
-  uint_fast16_t A = atoi(argv[7]);
-  uint_fast16_t B = atoi(argv[8]);
-  uint_fast16_t N = atoi(argv[9]);
+  uint16_t A = atoi(argv[7]);
+  uint16_t B = atoi(argv[8]);
+  uint16_t N = atoi(argv[9]);
 
 
   std::string encrypt("encrypt");
