@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
   const char* OUT_FILE_PATH = argv[3];
   uint16_t P = atoi(argv[4]);
   uint16_t Q = atoi(argv[5]);
-  uint64_t S = atoi(argv[6]);
+  uint32_t S = atoi(argv[6]);
   uint16_t A = atoi(argv[7]);
   uint16_t B = atoi(argv[8]);
   uint16_t N = atoi(argv[9]);
