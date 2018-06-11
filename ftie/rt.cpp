@@ -14,7 +14,7 @@ namespace ftie {
       int n_k = keystream.size();
       std::vector<uint8_t> cipherbytes(n * 2);
       std::random_device generateRandom;
-      for (uint_fast32_t i = 0; i < n; i ++) {
+      for (uint32_t i = 0; i < n; i ++) {
         uint8_t random = generateRandom();
         cipherbytes[i * 2] = keystream[i % n_k] + 2 * plainbytes[i] +  random;
         cipherbytes[i * 2 + 1] = 2 * keystream[i % n_k] + plainbytes[i] + random;
@@ -28,7 +28,7 @@ namespace ftie {
       int n = cipherbytes.size() / 2;
       int n_k = keystream.size();
       std::vector<uint8_t> plainbytes(n);
-      for (uint_fast32_t i = 0; i < n; i ++) {
+      for (uint32_t i = 0; i < n; i ++) {
         uint8_t a = cipherbytes[i * 2] - keystream[i % n_k];
         uint8_t b = cipherbytes[i * 2 + 1] - 2 * keystream[i % n_k];
         plainbytes[i] = a - b;
