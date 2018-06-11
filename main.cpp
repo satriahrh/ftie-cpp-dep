@@ -21,10 +21,10 @@ int main(int argc, char* argv[]) {
   std::vector<uint8_t> KEYSTREAM;
   uint16_t P;
   uint16_t Q;
-  uint64_t S;
-  uint_fast16_t A;
-  uint_fast16_t B;
-  uint_fast16_t N;
+  uint32_t S;
+  uint16_t A;
+  uint16_t B;
+  uint16_t N;
   if (argc == 10) {
     P = atoi(argv[4]);
     Q = atoi(argv[5]);
