@@ -10,7 +10,7 @@
 namespace ftie {
   namespace bbs {
     std::vector<uint8_t> generate_randoms(
-      uint16_t p, uint16_t q, uint32_t s, uint_fast32_t n
+      uint16_t p, uint16_t q, uint32_t s, uint32_t n
     ) {
       {
         if (p < q) {
@@ -34,7 +34,7 @@ namespace ftie {
 
       uint64_t x = s;
       std::vector<uint8_t> kbits_randoms(n);
-      for(uint_fast32_t i = 0; i < n; i++) {
+      for(uint32_t i = 0; i < n; i++) {
         x = x * x % m;\
         kbits_randoms[i] = x;
       }
