@@ -66,12 +66,11 @@ std::vector<uint8_t> bytes_sequence_padding(std::vector<uint8_t> bytes) {
   bytes.insert(bytes.end(), pad.begin(), pad.end());
 
   std::vector<uint8_t> dn_vector = {
-    dn & 0xFF;
-    (dn >> 8) & 0xFF;
-    (dn >> 16) & 0xFF;
-    (dn >> 24) & 0xFF
+    uint8_t(dn),
+    uint8_t(dn >> 8),
+    uint8_t(dn >> 16),
+    uint8_t(dn >> 24)
   };
-
 
   bytes.insert(bytes.end(), dn_vector.begin(), dn_vector.end());
 
@@ -81,7 +80,11 @@ std::vector<uint8_t> bytes_sequence_padding(std::vector<uint8_t> bytes) {
 std::vector<uint8_t> bytes_sequence_stripping(std::vector<uint8_t> bytes) {
   std::vector<uint8_t>::iterator it = bytes.end() - 1;
 
-  uint32_t dn = (0xFF000000 & (*it-- << 24)) | (0x00FF0000 & (*it-- << 16)) | (0x0000FF00 & (*it-- << 8)) | (0x000000FF & *it);
+  uint32_t dn =
+    (0xFF000000 & (*it-- << 24)) |
+    (0x00FF0000 & (*it-- << 16)) |
+    (0x0000FF00 & (*it-- << 8)) |
+    (0x000000FF & *it);
 
   bytes.erase(it - dn, bytes.end());
   return bytes;
