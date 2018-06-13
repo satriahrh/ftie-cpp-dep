@@ -18,7 +18,7 @@ uint16_t iroot(uint16_t n) {
 prime::prime(uint16_t maximumN) {
   N = maximumN;
   // sieve of eratosthenes
-  primes = new bool[N];
+  primes = new bool[N]{};
   uint16_t limit = iroot(N);
   for(uint16_t i = 2; i <= limit; i++)
     if (!primes[i])
