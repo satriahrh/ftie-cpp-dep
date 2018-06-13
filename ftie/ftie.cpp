@@ -44,7 +44,7 @@ void bytes_sequence_to_physical_file(std::vector<uint8_t> bytes, const char* fil
 
 std::vector<uint8_t> bytes_sequence_padding(std::vector<uint8_t> bytes) {
   uint32_t len_bts = bytes.size();
-  uint32_t len_rdt = len_bts * 2;
+  uint32_t len_rdt = (len_bts + 4) * 2;
   float len_pixels = std::ceil(len_rdt / 3.0);
   //
   uint16_t n_matrix = uint32_t(std::ceil(std::sqrt(len_pixels)));
@@ -55,15 +55,29 @@ std::vector<uint8_t> bytes_sequence_padding(std::vector<uint8_t> bytes) {
   uint32_t exp_len_rdt = exp_len_pixels * 3;
   uint32_t exp_len_bts = exp_len_rdt / 2;
 
-  std::vector<uint8_t> pad(exp_len_bts - len_bts);
+  uint32_t dn = exp_len_bts - (len_bts + 4);
+  std::vector<uint8_t> pad(dn);
   bytes.insert(bytes.end(), pad.begin(), pad.end());
+
+  std::vector<uint8_t> dn_vector = {
+    dn & 0xFF;
+    (dn >> 8) & 0xFF;
+    (dn >> 16) & 0xFF;
+    (dn >> 24) & 0xFF
+  };
+
+
+  bytes.insert(bytes.end(), dn_vector.begin(), dn_vector.end());
+
   return bytes;
 }
 
 std::vector<uint8_t> bytes_sequence_stripping(std::vector<uint8_t> bytes) {
   std::vector<uint8_t>::iterator it = bytes.end() - 1;
-  while (*(it - 1) == 0) it--;
-  bytes.erase(it, bytes.end());
+
+  uint32_t dn = (0xFF000000 & (*it-- << 24)) | (0x00FF0000 & (*it-- << 16)) | (0x0000FF00 & (*it-- << 8)) | (0x000000FF & *it);
+
+  bytes.erase(it - dn, bytes.end());
   return bytes;
 }
 
