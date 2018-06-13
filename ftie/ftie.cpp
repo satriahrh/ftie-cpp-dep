@@ -43,6 +43,12 @@ void bytes_sequence_to_physical_file(std::vector<uint8_t> bytes, const char* fil
 }
 
 std::vector<uint8_t> bytes_sequence_padding(std::vector<uint8_t> bytes) {
+  unsigned int x = 0x76543210;
+  char *c = (char*) &x;
+
+  if (*c != 0x10)
+    throw "Underlying architecture is big endian";
+
   uint32_t len_bts = bytes.size();
   uint32_t len_rdt = (len_bts + 4) * 2;
   float len_pixels = std::ceil(len_rdt / 3.0);
