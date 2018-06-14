@@ -66,10 +66,10 @@ std::vector<uint8_t> bytes_sequence_padding(std::vector<uint8_t> bytes) {
   bytes.insert(bytes.end(), pad.begin(), pad.end());
 
   std::vector<uint8_t> dn_vector = {
-    uint8_t(dn),
-    uint8_t(dn >> 8),
+    uint8_t(dn >> 24),
     uint8_t(dn >> 16),
-    uint8_t(dn >> 24)
+    uint8_t(dn >> 8),
+    uint8_t(dn)
   };
 
   bytes.insert(bytes.end(), dn_vector.begin(), dn_vector.end());
