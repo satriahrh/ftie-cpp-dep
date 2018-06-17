@@ -141,7 +141,7 @@ uint16_t iroot_long(uint32_t n) {
 }
 
 std::vector<uint32_t> get_map_deprecated(
-  uint16_t a, uint16_t b, uint32_t n_t
+  uint32_t a, uint32_t b, uint32_t n_t
 ) {
   uint16_t N = iroot_long(n_t) + 1;
   std::vector<uint32_t> M;
