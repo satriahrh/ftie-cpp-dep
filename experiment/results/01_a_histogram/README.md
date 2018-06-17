@@ -1,3 +1,0 @@
-# NPCR
-
-coming soon
