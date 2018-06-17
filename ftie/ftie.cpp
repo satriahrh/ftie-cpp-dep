@@ -81,10 +81,10 @@ std::vector<uint8_t> bytes_sequence_stripping(std::vector<uint8_t> bytes) {
   std::vector<uint8_t>::iterator it = bytes.end() - 1;
 
   uint32_t dn =
-    (0xFF000000 & (*it-- << 24)) |
-    (0x00FF0000 & (*it-- << 16)) |
-    (0x0000FF00 & (*it-- << 8)) |
-    (0x000000FF & *it);
+    (0x000000FF & *it--) |
+    (0x0000FF00 & *it-- << 8) |
+    (0x00FF0000 & *it-- << 16) |
+    (0xFF000000 & *it << 24);
 
   bytes.erase(it - dn, bytes.end());
   return bytes;
