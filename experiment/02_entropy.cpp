@@ -9,7 +9,7 @@
 #include <iostream>
 
 
-float calculate_entropy(
+double calculate_entropy(
   png::image<png::rgb_pixel> image
 ) {
   uint_fast16_t N = image.get_height();
@@ -24,16 +24,15 @@ float calculate_entropy(
   }
   uint_fast32_t n = N * N * 3;
 
-  std::vector<float> p(256);
-  float hm = 0;
+  double hm = 0;
   for (int i = 0; i < 256; i++) {
-    p[i] = sum[i] / (n * 1.0);
-    hm += p[i] * log2f(1 / p[i]);
+    double p = sum[i] / (n * 1.0);
+    hm += p * log2(1 / p);
   }
   return hm;
 }
 
-// g++ -o bin/02 -std=c++17 ftie/*.h ftie/*.cpp experiment/02_entropy.cpp `libpng-config --ldflags`
+// g++ -o bin/02 -std=c++17 ftie/*.h ftie/*.cpp experiment/02_entropy.cpp `libpng-config --ldflags` && ./bin/02
 int main(int argc, char const *argv[]) {
   try {
     std::random_device generateRandom;
@@ -46,36 +45,41 @@ int main(int argc, char const *argv[]) {
     // acm
     uint_fast16_t a = generateRandom();
     uint_fast16_t b = generateRandom();
-    uint_fast16_t n = generateRandom() % 100;
+    uint_fast16_t n = generateRandom() % 300;
 
     // bbs
     uint16_t p = 55603;
     uint16_t q = 57467;
     uint32_t s = 1369318511;
 
-    std::cout << "bytes | deprecated | proposed" << '\n';
+    std::cout << "# Entropy" << '\n';
+    std::cout << "plainfile's size (MB) | deprecated | proposed" << '\n';
     std::cout << "--- | --- | ---" << '\n';
 
-    for (int ip = 1000000; ip <= 10000000; ip += 1000000) {
+    uint16_t init = 5;
+    uint16_t inc = 5;
+    uint16_t max = 100;
+    for (uint16_t mb = init; mb <= max; mb += inc) {
       // plainfile
-      std::vector<uint8_t> bytes(ip);
+      std::vector<uint8_t> bytes(mb * 100000);
       for (int i = 0; i < bytes.size(); i++)
       bytes[i] = generateRandom();
-      std::ofstream outfile("experiment/dum/plainfile", std::ios::out | std::ios::binary);
+      std::ofstream outfile("experiment/dum/plainfile_ent", std::ios::out | std::ios::binary);
       outfile.write((const char*)&bytes[0], bytes.size());
       outfile.close();
-      float hm_1;
-      float hm_2;
+
+      double hm_1;
+      double hm_2;
       {
-        ftie::deprecated::encrypt(keystream, a, b, n, "experiment/dum/plainfile", "experiment/dum/1.png");
-        png::image<png::rgb_pixel> cipherimage("experiment/dum/1.png");
+        ftie::deprecated::encrypt(keystream, a, b, n, "experiment/dum/plainfile_ent", "experiment/dum/1_ent.png");
+        png::image<png::rgb_pixel> cipherimage("experiment/dum/1_ent.png");
         hm_1 = calculate_entropy(cipherimage);
       } {
-        ftie::encrypt(p, q, s, a, b, n, "experiment/dum/plainfile", "experiment/dum/1.png");
-        png::image<png::rgb_pixel> cipherimage("experiment/dum/1.png");
+        ftie::encrypt(p, q, s, a, b, n, "experiment/dum/plainfile_ent", "experiment/dum/1_ent.png");
+        png::image<png::rgb_pixel> cipherimage("experiment/dum/1_ent.png");
         hm_2 = calculate_entropy(cipherimage);
       }
-      std::cout << ip << " | ";
+      std::cout << (mb / 10.0) << " | ";
       std::cout << hm_1 << " | ";
       std::cout << hm_2;
       std::cout << '\n';
