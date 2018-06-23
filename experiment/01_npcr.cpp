@@ -31,7 +31,7 @@ double calculate_npcr(
 
   return sum / n;
 }
-// g++ -o bin/01-b -std=c++17 ftie/*.h ftie/*.cpp experiment/01_b_npcr.cpp `libpng-config --ldflags` && ./bin/01-b
+// g++ -o bin/01 -std=c++17 ftie/*.h ftie/*.cpp experiment/01_npcr.cpp `libpng-config --ldflags` && ./bin/01
 int main(int argc, char const *argv[]) {
   try {
     std::random_device generateRandom;
