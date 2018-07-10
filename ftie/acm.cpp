@@ -94,7 +94,7 @@ std::vector<std::vector<std::vector<uint16_t>>> mapping_general(
   A[1][0] = b % N;
   A[1][1] = (1 + a * b) % N;
 
-  std::vector<std::vector<uint16_t>> An = modular_matrix_exponentiation(A, 2, N);
+  std::vector<std::vector<uint16_t>> An = modular_matrix_exponentiation(A, n, N);
   std::vector<std::vector<std::vector<uint16_t>>> map(N, std::vector<std::vector<uint16_t>> (N, std::vector<uint16_t> (2)));
   for (uint16_t x = 0; x < N; x++) {
     for (uint16_t y = 0; y < N; y++) {
