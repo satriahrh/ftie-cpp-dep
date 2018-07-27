@@ -8,19 +8,40 @@
 
 int main(int argc, char* argv[]) {
   if (argc != 10) {
-    std::cout << "Check given parameter is correct" << std::endl;
-    return -1;
+    if (argc == 8) {
+      std::cout << "You are using depracated system" << std::endl;
+    } else {
+      std::cout << "Check given parameter is correct" << std::endl;
+      return -1;
+    }
   }
   const char* MODE = argv[1];
   const char* IN_FILE_PATH = argv[2];
   const char* OUT_FILE_PATH = argv[3];
-  uint16_t P = atoi(argv[4]);
-  uint16_t Q = atoi(argv[5]);
-  uint32_t S = atoi(argv[6]);
-  uint16_t A = atoi(argv[7]);
-  uint16_t B = atoi(argv[8]);
-  uint16_t N = atoi(argv[9]);
-
+  std::vector<uint8_t> KEYSTREAM;
+  uint16_t P;
+  uint16_t Q;
+  uint32_t S;
+  uint16_t A;
+  uint16_t B;
+  uint16_t N;
+  if (argc == 10) {
+    P = atoi(argv[4]);
+    Q = atoi(argv[5]);
+    S = atoi(argv[6]);
+    A = atoi(argv[7]);
+    B = atoi(argv[8]);
+    N = atoi(argv[9]);
+  } else if (argc == 8) {
+    const char* KEYSTREAM_CHARS = argv[4];
+    unsigned char* buffer = (unsigned char*)KEYSTREAM_CHARS;
+    std::vector<uint8_t>::size_type size = std::strlen((const char*)buffer);
+    std::vector<uint8_t> ks(buffer, buffer + size);
+    KEYSTREAM = ks;
+    A = atoi(argv[5]);
+    B = atoi(argv[6]);
+    N = atoi(argv[7]);
+  }
 
   std::string encrypt("encrypt");
   std::string decrypt("decrypt");
@@ -30,7 +51,10 @@ int main(int argc, char* argv[]) {
     try {
       std::cout << MODE << "ing " << IN_FILE_PATH << " to " << OUT_FILE_PATH << " . . . " << std::endl;
       auto start = std::chrono::high_resolution_clock::now();
-      ftie::encrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
+      if (argc == 10)
+        ftie::encrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
+      else if (argc == 8)
+        ftie::deprecated::encrypt(KEYSTREAM, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
       auto finish = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> elapsed = finish - start;
       std::cout << "Done! Elapsed time: " << elapsed.count() << " seconds" << std::endl;
@@ -42,7 +66,10 @@ int main(int argc, char* argv[]) {
     std::cout << MODE << "ing " << IN_FILE_PATH << " to " << OUT_FILE_PATH << " . . . " << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
     try {
-      ftie::decrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
+      if (argc == 10)
+        ftie::decrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
+      else if (argc == 8)
+        ftie::deprecated::decrypt(KEYSTREAM, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
       auto finish = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> elapsed = finish - start;
       std::cout << "Done! Elapsed time: " << elapsed.count() << " seconds"<< std::endl;
