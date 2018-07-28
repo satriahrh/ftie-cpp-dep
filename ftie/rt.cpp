@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <random>
 #include <vector>
+#include <iostream>
+#include <iomanip>
 
 
 namespace ftie {
@@ -14,11 +16,30 @@ namespace ftie {
       int n_k = keystream.size();
       std::vector<uint8_t> cipherbytes(n * 2);
       std::random_device generateRandom;
+
+      uint16_t n_matrix = uint32_t(std::ceil(std::sqrt((plainbytes.size() * 2) / 3.0)));
+      size_t limit = n_matrix * 3;
+      std::cout << "random stream";
+      size_t token = 0;
+
       for (uint32_t i = 0; i < n; i ++) {
         uint8_t random = generateRandom();
         cipherbytes[i * 2] = keystream[i % n_k] + 2 * plainbytes[i] +  random;
         cipherbytes[i * 2 + 1] = 2 * keystream[i % n_k] + plainbytes[i] + random;
+
+        if (token % limit == 0)
+          std::cout << '\n';
+        std::cout << std::setw(3) << int(random);
+        std::cout << " ";
+        token += 1;
+
+        if (token % limit == 0)
+          std::cout << '\n';
+        std::cout << "   ";
+        std::cout << " ";
+        token += 1;
       }
+      std::cout << '\n' << '\n';
       return cipherbytes;
     }
 

@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <cmath>
 #include <map>
+#include <iostream>
+#include <iomanip>
 
 
 std::vector<std::vector<uint16_t>> modular_matrix_multiplication(
@@ -178,12 +180,31 @@ namespace ftie {
       std::vector<std::vector<std::vector<uint16_t>>> map = get_map(a, b, n, N);
 
       png::image< png::rgb_pixel> cipherimage(N, N);
+
+      std::cout << "mapping" << '\n';
+      std::cout << "     | ";
+      for (int i = 0; i < N; i++) {
+        std::cout << std::setw(6) << i;
+        std::cout << "     ";
+      }
+      std::cout << '\n';
+
       for (uint16_t x = 0; x < N; x++) {
+        std::cout << std::setw(4) << x;
+        std::cout << " | ";
         for (uint16_t y = 0; y < N; y++) {
           std::vector<uint16_t> pos = map[x][y];
           cipherimage[y][x] = plainimage[pos[1]][pos[0]];
+
+          std::cout << "(";
+          std::cout << std::setw(3) << pos[0];
+          std::cout << ", ";
+          std::cout << std::setw(3) << pos[1];
+          std::cout << ") ";
         }
+        std::cout << '\n';
       }
+      std::cout << '\n';
       return cipherimage;
     }
 
@@ -195,12 +216,31 @@ namespace ftie {
       uint16_t N = cipherimage.get_height();
       std::vector<std::vector<std::vector<uint16_t>>> map = get_map(a, b, n, N);
       png::image< png::rgb_pixel> plainimage(N, N);
+
+      std::cout << "mapping" << '\n';
+      std::cout << "     | ";
+      for (int i = 0; i < N; i++) {
+        std::cout << std::setw(6) << i;
+        std::cout << "     ";
+      }
+      std::cout << '\n';
+
       for (uint16_t x = 0; x < N; x++) {
+        std::cout << std::setw(4) << x;
+        std::cout << " | ";
         for (uint16_t y = 0; y < N; y++) {
           std::vector<uint16_t> pos = map[x][y];
           plainimage[pos[1]][pos[0]] = cipherimage[y][x];
+
+          std::cout << "(";
+          std::cout << std::setw(3) << pos[0];
+          std::cout << ", ";
+          std::cout << std::setw(3) << pos[1];
+          std::cout << ") ";
         }
+        std::cout << '\n';
       }
+      std::cout << '\n';
       return plainimage;
     }
   }
@@ -215,12 +255,27 @@ namespace ftie {
         uint32_t n_t = plaintext.size();
         std::vector<uint8_t> ciphertext(n_t);
         std::vector<uint32_t> map = get_map_deprecated(a, b, n_t);
+
+        uint16_t n_matrix = uint32_t(std::ceil(std::sqrt(plaintext.size() / 3.0)));
+        size_t limit = n_matrix * 3;
+        std::cout << "mapping";
+        bool mapping_printed = false;
+
         for (uint16_t t = 0; t < n; t++) {
           for (uint32_t i = 0; i < n_t; i++) {
             ciphertext[i] = plaintext[map[i]];
+
+            if (!mapping_printed) {
+              if (i % limit == 0)
+                std::cout << '\n';
+              std::cout << std::setw(3) << int(map[i]);
+              std::cout << " ";
+            }
           }
+          mapping_printed = true;
           plaintext = ciphertext;
         }
+        std::cout << '\n' << '\n';
         return ciphertext;
       }
 
@@ -233,12 +288,26 @@ namespace ftie {
         std::vector<uint8_t> plaintext(n_t);
         std::vector<uint32_t> map = get_map_deprecated(a, b, n_t);
 
+        uint16_t n_matrix = uint32_t(std::ceil(std::sqrt(plaintext.size() / 3.0)));
+        size_t limit = n_matrix * 3;
+        std::cout << "mapping";
+        bool mapping_printed = false;
+
         for (uint16_t t = 0; t < n; t++) {
           for (uint32_t i = 0; i < n_t; i++) {
             plaintext[map[i]] = ciphertext[i];
+
+            if (!mapping_printed) {
+              if (i % limit == 0)
+                std::cout << '\n';
+              std::cout << std::setw(3) << int(map[i]);
+              std::cout << " ";
+            }
           }
+          mapping_printed = true;
           ciphertext = plaintext;
         }
+        std::cout << '\n' << '\n';
         return plaintext;
       }
     }
