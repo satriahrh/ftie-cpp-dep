@@ -54,7 +54,7 @@ namespace tools {
     double hm = 0;
     for (int i = 0; i < 256; i++) {
       double p = sum[i] / (n * 1.0);
-      hm = p * log2(1 / p);
+      hm += p * log2(1 / p);
     }
     return hm;
   }
