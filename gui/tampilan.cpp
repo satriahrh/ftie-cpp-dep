@@ -3,11 +3,51 @@
 #include "../ftie/ftie.h"
 
 #include <iostream>
+#include <chrono>
 #include <cstdint>
 #include <exception>
 #include <string>
 #include <sstream>
 
+std::chrono::duration<double> chrono_encrypt(
+  uint16_t p, uint16_t q, uint32_t s, uint16_t a, uint16_t b, uint16_t n,
+  const char* plainfileFilepath, const char* cipherimageFilepath
+) {
+  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+  ftie::encrypt(p, q, s, a, b, n, plainfileFilepath, cipherimageFilepath);
+  std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
+  return finish - start;
+}
+
+std::chrono::duration<double> chrono_decrypt(
+  uint16_t p, uint16_t q, uint32_t s, uint16_t a, uint16_t b, uint16_t n,
+  const char* cipherimageFilepath, const char* plainfileFilepath
+) {
+  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+  ftie::decrypt(p, q, s, a, b, n, cipherimageFilepath, plainfileFilepath);
+  std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
+  return finish - start;
+}
+
+std::chrono::duration<double> chrono_deprecated_encrypt(
+  std::vector<uint8_t> keystream, uint16_t a, uint16_t b, uint16_t n,
+  const char* plainfileFilepath, const char* cipherimageFilepath
+) {
+  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+  ftie::deprecated::encrypt(keystream, a, b, n, plainfileFilepath, cipherimageFilepath);
+  std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
+  return finish - start;
+}
+
+std::chrono::duration<double> chrono_deprecated_decrypt(
+  std::vector<uint8_t> keystream, uint16_t a, uint16_t b, uint16_t n,
+  const char* cipherimageFilepath, const char* plainfileFilepath
+) {
+  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+  ftie::deprecated::decrypt(keystream, a, b, n, cipherimageFilepath, plainfileFilepath);
+  std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
+  return finish - start;
+}
 
 Tampilan::Tampilan():
 frameMethod("Method"),
@@ -202,6 +242,9 @@ void Tampilan::on_button_run_clicked() {
   uint16_t p, q, a, b, n;
   uint32_t s;
   std::vector<uint8_t> keystream;
+
+  std::chrono::duration<double> tt;
+
   try {
     if (cbProposed.get_active()) {
       p = std::stoi(entryBbsP.get_text());
@@ -225,27 +268,28 @@ void Tampilan::on_button_run_clicked() {
       if (proposed) {
         plainfileFilepath = choose_plainfile();
         cipherimageFilepath = choose_cipherimage();
-        ftie::encrypt(p, q, s, a, b, n, plainfileFilepath.c_str(), cipherimageFilepath.c_str());
+        tt = chrono_encrypt(p, q, s, a, b, n, plainfileFilepath.c_str(), cipherimageFilepath.c_str());
       }
       if (previous) {
         plainfileFilepath = choose_plainfile();
         cipherimageFilepath = choose_cipherimage();
-        ftie::deprecated::encrypt(keystream, a, b, n, plainfileFilepath.c_str(), cipherimageFilepath.c_str());
+        tt = chrono_deprecated_encrypt(keystream, a, b, n, plainfileFilepath.c_str(), cipherimageFilepath.c_str());
       }
     }
     else if (!encrypt && decrypt) {
       if (proposed) {
         cipherimageFilepath = choose_cipherimage();
         plainfileFilepath = choose_plainfile();
-        ftie::decrypt(p, q, s, a, b, n, cipherimageFilepath.c_str(), plainfileFilepath.c_str());
+        tt = chrono_decrypt(p, q, s, a, b, n, cipherimageFilepath.c_str(), plainfileFilepath.c_str());
       }
       if (previous) {
         cipherimageFilepath = choose_cipherimage();
         plainfileFilepath = choose_plainfile();
-        ftie::deprecated::decrypt(keystream, a, b, n, cipherimageFilepath.c_str(), plainfileFilepath.c_str());
+        tt = chrono_deprecated_decrypt(keystream, a, b, n, cipherimageFilepath.c_str(), plainfileFilepath.c_str());
       }
     }
     // std::cout << p << ' ' << q  << ' ' << s << ' ' << a << ' ' << b << ' ' << n << '\n';
+    std::cout << "Time elapsed: " << tt.count() << '\n';
     labelMessage.set_text("Done!!");
   } catch (const std::exception& e) {
     std::cout << e.what() << '\n';

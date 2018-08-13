@@ -288,6 +288,8 @@ namespace ftie {
 
       print_byte_stream(plainbytes, "byte stream 2", true);
 
+      print_byte_stream(keystream, "keystream", true);
+
       std::vector<uint8_t> cipherbytes = ftie::rt::encrypt(plainbytes, keystream);
 
       print_byte_stream(cipherbytes, "byte stream 3");
@@ -320,6 +322,8 @@ namespace ftie {
       cipherbytes = ftie::deprecated::acm::decrypt(a, b, n, cipherbytes);
 
       print_byte_stream(cipherbytes, "byte stream 3");
+
+      print_byte_stream(keystream, "keystream", true);
 
       std::vector<uint8_t> plainbytes = ftie::rt::decrypt(cipherbytes, keystream);
 
