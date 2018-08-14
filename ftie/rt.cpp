@@ -1,7 +1,9 @@
 #include "rt.h"
 
 #include <cstdint>
+#include <fstream>
 #include <random>
+#include <sstream>
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -19,7 +21,10 @@ namespace ftie {
 
       uint16_t n_matrix = uint32_t(std::ceil(std::sqrt((plainbytes.size() * 2) / 3.0)));
       size_t limit = n_matrix * 3;
-      std::cout << "random stream";
+      std::stringstream ss;
+      ss << "/home/hafizhme/ftie-" << "random" << ".log";
+      std::ofstream fout(ss.str());
+      ss.clear();
       size_t token = 0;
 
       for (uint32_t i = 0; i < n; i ++) {
@@ -28,18 +33,20 @@ namespace ftie {
         cipherbytes[i * 2 + 1] = 2 * keystream[i % n_k] + plainbytes[i] + random;
 
         if (token % limit == 0)
-          std::cout << '\n';
-        std::cout << std::setw(3) << int(random);
-        std::cout << " ";
+          fout << '\n';
+        fout << std::setw(3) << int(random);
+        fout << " ";
         token += 1;
 
         if (token % limit == 0)
-          std::cout << '\n';
-        std::cout << "   ";
-        std::cout << " ";
+          fout << '\n';
+        fout << "   ";
+        fout << " ";
         token += 1;
       }
-      std::cout << '\n' << '\n';
+      fout << '\n' << '\n';
+      fout.close();
+
       return cipherbytes;
     }
 

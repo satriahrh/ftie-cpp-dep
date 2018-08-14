@@ -3,14 +3,14 @@
 #include "acm.h"
 #include "bbs.h"
 #include "rt.h"
+#include "tools.h"
 
 #include "png++/png.hpp"
 
 #include <cmath>
-#include <fstream>
+#include <chrono>
 #include <iterator>
 #include <iostream>
-#include <iomanip>
 
 
 std::vector<uint8_t> physical_file_to_bytes_sequence(const char* filePath) {
@@ -127,115 +127,43 @@ std::vector<uint8_t> image_to_bytes_sequence(png::image<png::rgb_pixel> image) {
   return bytes;
 }
 
-void print_byte_stream(std::vector<uint8_t> byteStream, std::string title, bool padded) {
-  uint16_t n_matrix;
-  if (padded) {
-    n_matrix = uint32_t(std::ceil(std::sqrt((byteStream.size() * 2) / 3.0)));
-  } else {
-    uint32_t len_bts = byteStream.size();
-    uint32_t len_rdt = (len_bts + 4) * 2;
-    float len_pixels = std::ceil(len_rdt / 3.0);
-    //
-    n_matrix = uint32_t(std::ceil(std::sqrt(len_pixels)));
-    if (n_matrix % 2 == 1)
-    n_matrix += 1;
-    //
-  }
-  size_t limit = n_matrix * 3;
-
-  std::cout << title;
-
-  size_t token = 0;
-  for (size_t i = 0; i < byteStream.size(); i++) {
-    if (token % limit == 0)
-      std::cout << '\n';
-    std::cout << std::setw(3) << int(byteStream[i]);
-    std::cout << " ";
-    token += 1;
-
-    if (token % limit == 0)
-      std::cout << '\n';
-    std::cout << "   ";
-    std::cout << " ";
-    token += 1;
-  }
-  std::cout << '\n' << '\n';
-}
-
-void print_byte_stream(std::vector<uint8_t> byteStream, std::string title) {
-  uint16_t n_matrix = uint32_t(std::ceil(std::sqrt(byteStream.size() / 3.0)));
-  size_t limit = n_matrix * 3;
-
-  std::cout << title;
-
-  for (size_t i = 0; i < byteStream.size(); i++) {
-    if (i % limit == 0)
-      std::cout << '\n';
-    std::cout << std::setw(3) << int(byteStream[i]);
-    std::cout << " ";
-  }
-  std::cout << '\n' << '\n';
-}
-
-void print_image(png::image<png::rgb_pixel> image, std::string title) {
-  std::cout << title << '\n';
-  std::cout << "     | ";
-  for (int i = 0; i < image.get_height(); i++) {
-    std::cout << std::setw(8) << i;
-    std::cout << "        ";
-  }
-  std::cout << '\n';
-  for (int y = 0; y < image.get_height(); y++) {
-    std::cout << std::setw(4) << y;
-    std::cout << " | ";
-    for (int x = 0; x < image.get_height(); x++) {
-      std::cout << "(";
-      std::cout << std::setw(3) << int(image[y][x].red);
-      std::cout << ", ";
-      std::cout << std::setw(3) << int(image[y][x].green);
-      std::cout << ", ";
-      std::cout << std::setw(3) << int(image[y][x].blue);
-      std::cout << ") ";
-    }
-    std::cout << '\n';
-  }
-  std::cout << '\n';
-}
-
 namespace ftie {
   void encrypt(
     uint16_t p, uint16_t q, uint32_t s, uint16_t a, uint16_t b, uint16_t n,
     const char* plainfileFilepath, const char* cipherimageFilepath
   ) {
     std::cout << "Encrypting " << plainfileFilepath << " into " << cipherimageFilepath << '\n';
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
     std::vector<uint8_t> plainbytes = physical_file_to_bytes_sequence(plainfileFilepath);
 
-    print_byte_stream(plainbytes, "byte stream 1", false);
+    tools::print_byte_stream(plainbytes, "byte stream 1", false);
 
     plainbytes = bytes_sequence_padding(plainbytes);
 
-    print_byte_stream(plainbytes, "byte stream 2", true);
+    tools::print_byte_stream(plainbytes, "byte stream 2", true);
 
     std::vector<uint8_t> keystream = ftie::bbs::generate_randoms(p, q, s, plainbytes.size());
 
-    print_byte_stream(keystream, "keystream", true);
+    tools::print_byte_stream(keystream, "keystream", true);
 
     std::vector<uint8_t> cipherbytes = ftie::rt::encrypt(plainbytes, keystream);
 
-    print_byte_stream(cipherbytes, "byte stream 3");
+    tools::print_byte_stream(cipherbytes, "ciphertext");
 
     png::image<png::rgb_pixel> plainimage = bytes_sequence_to_image(cipherbytes);
 
-    print_image(plainimage, "image");
+    tools::print_image(plainimage, "image");
 
     png::image<png::rgb_pixel> cipherimage = ftie::acm::encrypt(a, b, n, plainimage);
 
-    print_image(cipherimage, "cipherimage");
+    tools::print_image(cipherimage, "cipherimage");
 
     cipherimage.write(cipherimageFilepath);
 
-    std::cout << "Done" << '\n';
+    std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_elapsed = finish - start;
+    std::cout << "Done in " << time_elapsed.count() << '\n';
   }
 
   void decrypt(
@@ -243,34 +171,37 @@ namespace ftie {
     const char* cipherimageFilepath, const char* plainfileFilepath
   ) {
     std::cout << "Decrypting " << cipherimageFilepath << " into "<< plainfileFilepath << '\n';
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
     png::image<png::rgb_pixel> cipherimage(cipherimageFilepath);
 
-    print_image(cipherimage, "cipherimage");
+    tools::print_image(cipherimage, "cipherimage");
 
     png::image<png::rgb_pixel> plainimage = ftie::acm::decrypt(a, b, n, cipherimage);
 
-    print_image(plainimage, "image");
+    tools::print_image(plainimage, "image");
 
     std::vector<uint8_t> cipherbytes = image_to_bytes_sequence(plainimage);
 
-    print_byte_stream(cipherbytes, "byte stream 3");
+    tools::print_byte_stream(cipherbytes, "ciphertext");
 
     std::vector<uint8_t> keystream = ftie::bbs::generate_randoms(p, q, s, cipherbytes.size() / 2);
 
-    print_byte_stream(keystream, "keystream", true);
+    tools::print_byte_stream(keystream, "keystream", true);
 
     std::vector<uint8_t> plainbytes = ftie::rt::decrypt(cipherbytes, keystream);
 
-    print_byte_stream(plainbytes, "byte stream 2", true);
+    tools::print_byte_stream(plainbytes, "byte stream 2", true);
 
     plainbytes = bytes_sequence_stripping(plainbytes);
 
-    print_byte_stream(plainbytes, "byte stream 1", false);
+    tools::print_byte_stream(plainbytes, "byte stream 1", false);
 
     bytes_sequence_to_physical_file(plainbytes, plainfileFilepath);
 
-    std::cout << "Done" << '\n';
+    std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_elapsed = finish - start;
+    std::cout << "Done in " << time_elapsed.count() << '\n';
   }
 
   namespace deprecated {
@@ -279,32 +210,35 @@ namespace ftie {
       const char* plainfileFilepath, const char* cipherimageFilepath
     ) {
       std::cout << "Encrypting " << plainfileFilepath << " into " << cipherimageFilepath << '\n';
+      std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
       std::vector<uint8_t> plainbytes = physical_file_to_bytes_sequence(plainfileFilepath);
 
-      print_byte_stream(plainbytes, "byte stream 1", false);
+      tools::print_byte_stream(plainbytes, "byte stream 1", false);
 
       plainbytes = bytes_sequence_padding(plainbytes);
 
-      print_byte_stream(plainbytes, "byte stream 2", true);
+      tools::print_byte_stream(plainbytes, "byte stream 2", true);
 
-      print_byte_stream(keystream, "keystream", true);
+      tools::print_byte_stream(keystream, "keystream", true);
 
       std::vector<uint8_t> cipherbytes = ftie::rt::encrypt(plainbytes, keystream);
 
-      print_byte_stream(cipherbytes, "byte stream 3");
+      tools::print_byte_stream(cipherbytes, "ciphertext 1");
 
       cipherbytes = ftie::deprecated::acm::encrypt(a, b, n, cipherbytes);
 
-      print_byte_stream(cipherbytes, "byte stream 4");
+      tools::print_byte_stream(cipherbytes, "ciphertext 2");
 
       png::image<png::rgb_pixel> cipherimage = bytes_sequence_to_image(cipherbytes);
 
-      print_image(cipherimage, "cipherimage");
+      tools::print_image(cipherimage, "cipherimage");
 
       cipherimage.write(cipherimageFilepath);
 
-      std::cout << "Done" << '\n';
+      std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> time_elapsed = finish - start;
+      std::cout << "Done in " << time_elapsed.count() << '\n';
     }
 
     void decrypt(
@@ -312,30 +246,33 @@ namespace ftie {
       const char* cipherimageFilepath, const char* plainfileFilepath
     ) {
       png::image<png::rgb_pixel> cipherimage(cipherimageFilepath);
+      std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
-      print_image(cipherimage, "cipherimage");
+      tools::print_image(cipherimage, "cipherimage");
 
       std::vector<uint8_t> cipherbytes = image_to_bytes_sequence(cipherimage);
 
-      print_byte_stream(cipherbytes, "byte stream 4");
+      tools::print_byte_stream(cipherbytes, "ciphertext 2");
 
       cipherbytes = ftie::deprecated::acm::decrypt(a, b, n, cipherbytes);
 
-      print_byte_stream(cipherbytes, "byte stream 3");
+      tools::print_byte_stream(cipherbytes, "ciphertext 1");
 
-      print_byte_stream(keystream, "keystream", true);
+      tools::print_byte_stream(keystream, "keystream", true);
 
       std::vector<uint8_t> plainbytes = ftie::rt::decrypt(cipherbytes, keystream);
 
-      print_byte_stream(plainbytes, "byte stream 2", true);
+      tools::print_byte_stream(plainbytes, "byte stream 2", true);
 
       plainbytes = bytes_sequence_stripping(plainbytes);
 
-      print_byte_stream(plainbytes, "byte stream 1", false);
+      tools::print_byte_stream(plainbytes, "byte stream 1", false);
 
       bytes_sequence_to_physical_file(plainbytes, plainfileFilepath);
 
-      std::cout << "Done" << '\n';
+      std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> time_elapsed = finish - start;
+      std::cout << "Done in " << time_elapsed.count() << '\n';
     }
   }
 }

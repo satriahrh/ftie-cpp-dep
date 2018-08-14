@@ -7,6 +7,7 @@
 #include <map>
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 
 
 std::vector<std::vector<uint16_t>> modular_matrix_multiplication(
@@ -181,30 +182,35 @@ namespace ftie {
 
       png::image< png::rgb_pixel> cipherimage(N, N);
 
-      std::cout << "mapping" << '\n';
-      std::cout << "     | ";
+      std::stringstream ss;
+      ss << "/home/hafizhme/ftie-" << "mapping-generation" << ".log";
+      std::ofstream fout(ss.str());
+      ss.clear();
+
+      fout << "     | ";
       for (int i = 0; i < N; i++) {
-        std::cout << std::setw(6) << i;
-        std::cout << "     ";
+        fout << std::setw(6) << i;
+        fout << "     ";
       }
-      std::cout << '\n';
+      fout << '\n';
 
       for (uint16_t x = 0; x < N; x++) {
-        std::cout << std::setw(4) << x;
-        std::cout << " | ";
+        fout << std::setw(4) << x;
+        fout << " | ";
         for (uint16_t y = 0; y < N; y++) {
           std::vector<uint16_t> pos = map[x][y];
           cipherimage[y][x] = plainimage[pos[1]][pos[0]];
 
-          std::cout << "(";
-          std::cout << std::setw(3) << pos[0];
-          std::cout << ", ";
-          std::cout << std::setw(3) << pos[1];
-          std::cout << ") ";
+          fout << "(";
+          fout << std::setw(3) << pos[0];
+          fout << ", ";
+          fout << std::setw(3) << pos[1];
+          fout << ") ";
         }
-        std::cout << '\n';
+        fout << '\n';
       }
-      std::cout << '\n';
+      fout << '\n';
+      fout.close();
       return cipherimage;
     }
 
@@ -217,30 +223,34 @@ namespace ftie {
       std::vector<std::vector<std::vector<uint16_t>>> map = get_map(a, b, n, N);
       png::image< png::rgb_pixel> plainimage(N, N);
 
-      std::cout << "mapping" << '\n';
-      std::cout << "     | ";
+      std::stringstream ss;
+      ss << "/home/hafizhme/ftie-" << "mapping-generation" << ".log";
+      std::ofstream fout(ss.str());
+      ss.clear();
+
+      fout << "     | ";
       for (int i = 0; i < N; i++) {
-        std::cout << std::setw(6) << i;
-        std::cout << "     ";
+        fout << std::setw(6) << i;
+        fout << "     ";
       }
-      std::cout << '\n';
+      fout << '\n';
 
       for (uint16_t x = 0; x < N; x++) {
-        std::cout << std::setw(4) << x;
-        std::cout << " | ";
+        fout << std::setw(4) << x;
+        fout << " | ";
         for (uint16_t y = 0; y < N; y++) {
           std::vector<uint16_t> pos = map[x][y];
           plainimage[pos[1]][pos[0]] = cipherimage[y][x];
 
-          std::cout << "(";
-          std::cout << std::setw(3) << pos[0];
-          std::cout << ", ";
-          std::cout << std::setw(3) << pos[1];
-          std::cout << ") ";
+          fout << "(";
+          fout << std::setw(3) << pos[0];
+          fout << ", ";
+          fout << std::setw(3) << pos[1];
+          fout << ") ";
         }
-        std::cout << '\n';
+        fout << '\n';
       }
-      std::cout << '\n';
+      fout << '\n';
       return plainimage;
     }
   }
@@ -258,7 +268,12 @@ namespace ftie {
 
         uint16_t n_matrix = uint32_t(std::ceil(std::sqrt(plaintext.size() / 3.0)));
         size_t limit = n_matrix * 3;
-        std::cout << "mapping";
+
+        std::stringstream ss;
+        ss << "/home/hafizhme/ftie-" << "mapping-generation" << ".log";
+        std::ofstream fout(ss.str());
+        ss.clear();
+
         bool mapping_printed = false;
 
         for (uint16_t t = 0; t < n; t++) {
@@ -267,15 +282,17 @@ namespace ftie {
 
             if (!mapping_printed) {
               if (i % limit == 0)
-                std::cout << '\n';
-              std::cout << std::setw(3) << int(map[i]);
-              std::cout << " ";
+                fout << '\n';
+              fout << std::setw(3) << int(map[i]);
+              fout << " ";
             }
           }
           mapping_printed = true;
           plaintext = ciphertext;
         }
-        std::cout << '\n' << '\n';
+        fout << '\n' << '\n';
+
+        fout.close();
         return ciphertext;
       }
 
@@ -290,7 +307,12 @@ namespace ftie {
 
         uint16_t n_matrix = uint32_t(std::ceil(std::sqrt(plaintext.size() / 3.0)));
         size_t limit = n_matrix * 3;
-        std::cout << "mapping";
+
+        std::stringstream ss;
+        ss << "/home/hafizhme/ftie-" << "mapping-generation" << ".log";
+        std::ofstream fout(ss.str());
+        ss.clear();
+
         bool mapping_printed = false;
 
         for (uint16_t t = 0; t < n; t++) {
@@ -299,15 +321,18 @@ namespace ftie {
 
             if (!mapping_printed) {
               if (i % limit == 0)
-                std::cout << '\n';
-              std::cout << std::setw(3) << int(map[i]);
-              std::cout << " ";
+                fout << '\n';
+              fout << std::setw(3) << int(map[i]);
+              fout << " ";
             }
           }
           mapping_printed = true;
           ciphertext = plaintext;
         }
-        std::cout << '\n' << '\n';
+        fout << '\n' << '\n';
+
+        fout.close();
+
         return plaintext;
       }
     }
