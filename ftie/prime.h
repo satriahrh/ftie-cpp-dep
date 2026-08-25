@@ -1,18 +1,16 @@
 #ifndef PRIME_H
 #define PRIME_H
 
-#include <cstdint>
+#include <gmpxx.h>
 
 
-class prime{
-private:
-  uint16_t N;
-  bool * primes;
+namespace ftie {
+  // Miller-Rabin round count; mpz_probab_prime_p's false-positive bound is
+  // 4^-MILLER_RABIN_ROUNDS (<= 2^-80 at 40 rounds).
+  constexpr int MILLER_RABIN_ROUNDS = 40;
 
-public:
-  prime(uint16_t maximumN);
-  ~prime();
-  bool is_prime(uint16_t n);
-};
+  bool is_prime(const mpz_class& n);
+  mpz_class generate_prime_congruent_3_mod_4(unsigned int bits);
+}
 
 #endif

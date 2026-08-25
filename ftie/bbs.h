@@ -4,11 +4,13 @@
 #include <cstdint>
 #include <vector>
 
+#include <gmpxx.h>
+
 
 namespace ftie {
   namespace bbs {
     std::vector<uint8_t> generate_randoms(
-      uint16_t p, uint16_t q, uint32_t s, uint32_t n
+      mpz_class p, mpz_class q, mpz_class s, uint32_t n
     );
   }
 }
