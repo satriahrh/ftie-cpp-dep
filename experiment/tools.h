@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <vector>
 
+#include <gmpxx.h>
+
 namespace tools {
   double calculate_avalanche(
     const char * path_1,
@@ -18,12 +20,12 @@ namespace tools {
     const char * cipherimage2Filepath
   );
   std::chrono::duration<double> chrono_encrypt(
-    uint16_t p, uint16_t q, uint32_t s, uint16_t a, uint16_t b, uint16_t n,
+    mpz_class p, mpz_class q, mpz_class s, uint16_t a, uint16_t b, uint16_t n,
     const char* plainfileFilepath, const char* cipherimageFilepath
   );
 
   std::chrono::duration<double> chrono_decrypt(
-    uint16_t p, uint16_t q, uint32_t s, uint16_t a, uint16_t b, uint16_t n,
+    mpz_class p, mpz_class q, mpz_class s, uint16_t a, uint16_t b, uint16_t n,
     const char* cipherimageFilepath, const char* plainfileFilepath
   );
 

@@ -1,12 +1,26 @@
 #include "ftie/ftie.h"
+#include "ftie/prime.h"
 
 #include <chrono>
 #include <cstdlib>
+#include <stdexcept>
 #include <string>
 #include <iostream>
 
+#include <gmpxx.h>
+
 
 int main(int argc, char* argv[]) {
+  if (argc == 3 && std::string(argv[1]) == "genprime") {
+    unsigned int bits = atoi(argv[2]);
+    if (bits < 2) {
+      std::cout << "bits must be >= 2" << std::endl;
+      return -1;
+    }
+    mpz_class p = ftie::generate_prime_congruent_3_mod_4(bits);
+    std::cout << p.get_str(10) << std::endl;
+    return 0;
+  }
   if (argc != 10) {
     if (argc == 8) {
       std::cout << "You are using depracated system" << std::endl;
@@ -19,16 +33,21 @@ int main(int argc, char* argv[]) {
   const char* IN_FILE_PATH = argv[2];
   const char* OUT_FILE_PATH = argv[3];
   std::vector<uint8_t> KEYSTREAM;
-  uint16_t P;
-  uint16_t Q;
-  uint32_t S;
+  mpz_class P;
+  mpz_class Q;
+  mpz_class S;
   uint16_t A;
   uint16_t B;
   uint16_t N;
   if (argc == 10) {
-    P = atoi(argv[4]);
-    Q = atoi(argv[5]);
-    S = atoi(argv[6]);
+    try {
+      P = mpz_class(argv[4], 10);
+      Q = mpz_class(argv[5], 10);
+      S = mpz_class(argv[6], 10);
+    } catch (const std::invalid_argument&) {
+      std::cout << "P, Q, and S must be valid decimal integers" << std::endl;
+      return -1;
+    }
     A = atoi(argv[7]);
     B = atoi(argv[8]);
     N = atoi(argv[9]);
