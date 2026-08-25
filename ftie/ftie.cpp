@@ -127,7 +127,7 @@ std::vector<uint8_t> image_to_bytes_sequence(png::image<png::rgb_pixel> image) {
 
 namespace ftie {
   void encrypt(
-    uint16_t p, uint16_t q, uint32_t s, uint16_t a, uint16_t b, uint16_t n,
+    mpz_class p, mpz_class q, mpz_class s, uint16_t a, uint16_t b, uint16_t n,
     const char* plainfileFilepath, const char* cipherimageFilepath
   ) {
     std::vector<uint8_t> plainbytes = physical_file_to_bytes_sequence(plainfileFilepath);
@@ -144,7 +144,7 @@ namespace ftie {
   }
 
   void decrypt(
-    uint16_t p, uint16_t q, uint32_t s, uint16_t a, uint16_t b, uint16_t n,
+    mpz_class p, mpz_class q, mpz_class s, uint16_t a, uint16_t b, uint16_t n,
     const char* cipherimageFilepath, const char* plainfileFilepath
   ) {
     png::image<png::rgb_pixel> cipherimage(cipherimageFilepath);

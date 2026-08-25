@@ -7,16 +7,18 @@
 
 #include "png++/png.hpp"
 
+#include <gmpxx.h>
+
 #include <vector>
 
 
 namespace ftie {
   void encrypt(
-    uint16_t p, uint16_t q, uint32_t s, uint16_t a, uint16_t b, uint16_t n,
+    mpz_class p, mpz_class q, mpz_class s, uint16_t a, uint16_t b, uint16_t n,
     const char* plainfileFilepath, const char* cipherimageFilepath
   );
   void decrypt(
-    uint16_t p, uint16_t q, uint32_t s, uint16_t a, uint16_t b, uint16_t n,
+    mpz_class p, mpz_class q, mpz_class s, uint16_t a, uint16_t b, uint16_t n,
     const char* cipherimageFilepath, const char* plainfileFilepath
   );
 
