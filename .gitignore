@@ -34,3 +34,7 @@
 # Others
 test/*
 experiment/dum/*
+experiment/results/*
+experiment/bbs_params.csv
+
+bin/*
