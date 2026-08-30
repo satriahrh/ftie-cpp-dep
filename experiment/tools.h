@@ -8,6 +8,13 @@
 #include <gmpxx.h>
 
 namespace tools {
+  struct BbsParams {
+    unsigned int bits;
+    mpz_class p, q, s;
+  };
+
+  std::vector<BbsParams> read_bbs_params(const char* csvFilepath);
+
   double calculate_avalanche(
     const char * path_1,
     const char * path_2

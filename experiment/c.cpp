@@ -10,12 +10,10 @@
 #include <vector>
 #include <iostream>
 
+#include <gmpxx.h>
+
 #include "png++/png.hpp"
 
-
-std::vector<uint16_t> P = {3, 1439, 3187, 5011, 6967, 9067, 11083, 13187, 15391, 17491, 19927, 22063, 24391, 26863, 29027, 31379, 33647, 35963, 38447, 40759, 43019, 45659, 48131, 50387, 52967, 55619, 57947, 60607, 62971, 65479};
-std::vector<uint16_t> Q = {7, 1447, 3191, 5023, 6971, 9091, 11087, 13219, 15427, 17519, 19963, 22067, 24407, 26879, 29059, 31387, 33679, 35983, 38459, 40763, 43051, 45667, 48163, 50411, 52999, 55631, 57991, 60611, 62983, 65519};
-std::vector<uint32_t> S = {20, 1102012, 8269800, 14654568, 8514112, 72359465, 8297696, 24662060, 111450600, 70082287, 235198879, 465814318, 180650199, 505938172, 200851637, 972337598, 426365137, 1242795649, 666777313, 704963584, 823914892, 993565933, 532403049, 2504300086, 1055897756, 1426192730, 3257141641, 359282555, 2439740097, 1549795366};
 
 int main(int argc, char const *argv[]) {
   try {
@@ -64,10 +62,10 @@ int main(int argc, char const *argv[]) {
     keystream[i] = generateRandom();
 
     // bbs
-    uint8_t bbs = generateRandom() % 30;
-    uint16_t p = P[bbs];
-    uint16_t q = Q[bbs];
-    uint32_t s = S[bbs];
+    std::vector<tools::BbsParams> bbsParams = tools::read_bbs_params("experiment/bbs_params.csv");
+    mpz_class p = bbsParams.back().p;
+    mpz_class q = bbsParams.back().q;
+    mpz_class s = bbsParams.back().s;
 
     // acm
     uint16_t n = 50;

@@ -6,11 +6,37 @@
 #include <cmath>
 #include <cstdint>
 #include <fstream>
+#include <sstream>
+#include <string>
 #include <vector>
 
 #include "png++/png.hpp"
 
 namespace tools {
+  std::vector<BbsParams> read_bbs_params(const char* csvFilepath) {
+    std::ifstream file(csvFilepath);
+    std::vector<BbsParams> params;
+
+    std::string line;
+    std::getline(file, line); // header
+    while (std::getline(file, line)) {
+      std::stringstream ss(line);
+      std::string bitsStr, pStr, qStr, sStr;
+      std::getline(ss, bitsStr, ',');
+      std::getline(ss, pStr, ',');
+      std::getline(ss, qStr, ',');
+      std::getline(ss, sStr, ',');
+
+      BbsParams entry;
+      entry.bits = static_cast<unsigned int>(std::stoul(bitsStr));
+      entry.p = mpz_class(pStr, 10);
+      entry.q = mpz_class(qStr, 10);
+      entry.s = mpz_class(sStr, 10);
+      params.push_back(entry);
+    }
+    return params;
+  }
+
   double calculate_avalanche(
     const char * path_1,
     const char * path_2

@@ -1,3 +1,6 @@
+experiment-gen-params:
+	g++ -o bin/exp-gen-params.o -std=c++17 ftie/prime.h ftie/prime.cpp experiment/gen_params.cpp -lgmpxx -lgmp
+	./bin/exp-gen-params.o
 experiment-build-a:
 	g++ -o bin/exp-a.o -std=c++17 ftie/*.h ftie/*.cpp experiment/tools.h experiment/tools.cpp experiment/a.cpp `libpng-config --ldflags` -lgmpxx -lgmp
 experiment-build-b:
