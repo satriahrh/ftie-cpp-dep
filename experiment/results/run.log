@@ -1,0 +1,46 @@
+[2026-08-30 08:48:31] === run_experiments.sh starting (letters: a, force=0) ===
+[2026-08-30 08:48:31] generating BBS params (make experiment-gen-params)
+[2026-08-30 08:48:33] BBS params generated OK
+[2026-08-30 08:48:33] building all experiment binaries (make experiment-build-all)
+[2026-08-30 08:49:12] build OK
+[2026-08-30 08:49:12] starting experiment a
+[2026-08-30 08:52:41] === run_experiments.sh starting (letters: a b c d e f, force=0) ===
+[2026-08-30 08:52:41] reusing existing experiment/bbs_params.csv
+[2026-08-30 08:52:41] building all experiment binaries (make experiment-build-all)
+[2026-08-30 08:52:47] BUILD FAILED (see experiment/results/build.log) - aborting
+[2026-08-30 08:55:22] === run_experiments.sh starting (letters: a b c d e f, force=0) ===
+[2026-08-30 08:55:22] reusing existing experiment/bbs_params.csv
+[2026-08-30 08:55:22] building all experiment binaries (make experiment-build-all)
+[2026-08-30 08:56:01] build OK
+[2026-08-30 08:56:01] skipping experiment a (output already exists: experiment/results/a.csv, use --force to redo)
+[2026-08-30 08:56:01] starting experiment b
+[2026-08-30 08:56:18] === run_experiments.sh starting (letters: a b c d e f, force=1) ===
+[2026-08-30 08:56:18] generating BBS params (make experiment-gen-params)
+[2026-08-30 08:56:20] BBS params generated OK
+[2026-08-30 08:56:20] building all experiment binaries (make experiment-build-all)
+[2026-08-30 08:56:29] BUILD FAILED (see experiment/results/build.log) - aborting
+[2026-08-30 08:57:11] === run_experiments.sh starting (letters: a b c d e f, force=1) ===
+[2026-08-30 08:57:11] generating BBS params (make experiment-gen-params)
+[2026-08-30 08:57:12] BBS params generated OK
+[2026-08-30 08:57:12] building all experiment binaries (make experiment-build-all)
+[2026-08-30 08:57:52] build OK
+[2026-08-30 08:57:52] starting experiment a
+[2026-08-30 09:34:42] finished experiment a in 2210s (exit 0)
+[2026-08-30 09:34:42] starting experiment b
+[2026-08-30 10:10:14] finished experiment b in 2132s (exit 0)
+[2026-08-30 10:10:14] starting experiment c
+[2026-08-30 10:37:04] finished experiment c in 1610s (exit 0)
+[2026-08-30 10:37:04] starting experiment d
+[2026-08-30 11:02:21] finished experiment d in 1517s (exit 0)
+[2026-08-30 11:02:21] starting experiment e
+[2026-08-30 11:22:19] finished experiment e in 1198s (exit 0)
+[2026-08-30 11:22:19] starting experiment f
+[2026-08-30 11:51:50] finished experiment f in 1771s (exit 0)
+[2026-08-30 11:51:50] === summary ===
+[2026-08-30 11:51:50]   a: ok  duration=2210s  output=experiment/results/a.csv
+[2026-08-30 11:51:50]   b: ok  duration=2132s  output=experiment/results/b.csv
+[2026-08-30 11:51:50]   c: ok  duration=1610s  output=experiment/results/c.csv
+[2026-08-30 11:51:50]   d: ok  duration=1517s  output=experiment/results/d.csv
+[2026-08-30 11:51:50]   e: ok  duration=1198s  output=experiment/results/e.csv
+[2026-08-30 11:51:50]   f: ok  duration=1771s  output=experiment/results/f.csv
+[2026-08-30 11:51:50] === run_experiments.sh done ===
