@@ -2,11 +2,10 @@
 
 ## Compile Instruction
 ```
-g++ -o bin/ftie-cli -std=c++17 ftie/*.h ftie/*.cpp main.cpp `libpng-config --ldflags` -lgmpxx -lgmp
+g++ -o bin/ftie-cli -std=c++17 ftie/*.cpp main.cpp `libpng-config --ldflags` -lgmpxx -lgmp
 ```
 
-On macOS with Homebrew, Clang doesn't search `/opt/homebrew` by default and also errors on the `ftie/*.h`
-glob when treated as separate translation units, so use instead:
+On macOS with Homebrew, Clang doesn't search `/opt/homebrew` by default, so use instead:
 ```
 g++ -o bin/ftie-cli -std=c++17 -I/opt/homebrew/include -L/opt/homebrew/lib ftie/*.cpp main.cpp `libpng-config --cflags --ldflags` -lgmpxx -lgmp
 ```

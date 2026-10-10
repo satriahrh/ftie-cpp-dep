@@ -25,16 +25,24 @@ included as `"png++/png.hpp"` so it must be resolvable via the compiler's includ
 
 Build the CLI (from repo root):
 ```
-g++ -o bin/ftie-cli -std=c++17 ftie/*.h ftie/*.cpp main.cpp `libpng-config --ldflags` -lgmpxx -lgmp
+g++ -o bin/ftie-cli -std=c++17 ftie/*.cpp main.cpp `libpng-config --ldflags` -lgmpxx -lgmp
 ```
-On macOS/Homebrew (confirmed on Apple Clang 17), the above fails two ways this project's g++/Linux
-assumption doesn't hit: Clang errors on `ftie/*.h` being compiled as separate translation units, and
-`/opt/homebrew` isn't on the default search path the way `libpng-config` handles libpng. Use instead:
+Never pass header files (`ftie/*.h`, `experiment/tools.h`, etc.) as g++ inputs alongside `-o` — headers
+are pulled in automatically via `#include` from the `.cpp` files that need them, and explicitly listing
+one on the command line makes g++ treat the whole invocation as "build a precompiled header" instead of
+"compile and link," writing (or failing to write) the `.gch` output to the `-o` path itself. This breaks
+differently depending on toolchain/version — Apple Clang errors outright on macOS/Homebrew (confirmed on
+Apple Clang 17), while a newer g++ (confirmed on Ubuntu 24.04's g++ 13) can fail with a more confusing
+`cannot create precompiled header <path>: Text file busy` if that output path is already in use by a
+running process. The Makefile's `experiment-build-*`/`experiment-gen-params` targets already avoid this
+(headers excluded from every g++ invocation).
+
+On macOS/Homebrew, `/opt/homebrew` isn't on the default search path the way `libpng-config` handles
+libpng, so use instead:
 ```
 g++ -o bin/ftie-cli -std=c++17 -I/opt/homebrew/include -L/opt/homebrew/lib ftie/*.cpp main.cpp `libpng-config --cflags --ldflags` -lgmpxx -lgmp
 ```
-(same `-I`/`-L` and dropped `ftie/*.h` applies to the Makefile's `experiment-build-*` targets too, if
-building those on macOS.)
+(same `-I`/`-L` applies to the Makefile's `experiment-build-*` targets too, if building those on macOS.)
 
 Use the Makefile to build/run the comparison harnesses:
 ```
