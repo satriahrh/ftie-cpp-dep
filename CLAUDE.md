@@ -11,7 +11,10 @@ added:
 - A `Makefile` with `experiment-build-*` / `experiment-run-*` targets.
 - An `experiment/` directory (`a.cpp`..`f.cpp`, `tools.h`/`tools.cpp`) containing standalone comparison
   harnesses that benchmark the current image-based pipeline against the deprecated byte-array pipeline
-  (NPCR, entropy, avalanche effect, timing).
+  (NPCR, entropy, avalanche effect, timing). `a.cpp`..`e.cpp` sweep one parameter over random plaintext
+  (`run_experiments.sh`); `f.cpp` runs on real corpus files listed in a manifest
+  (`run_corpus_experiment.sh`, also `manifest.*`, `sha256.*`). Methodology and pre-flight notes:
+  `experiment/METHODOLOGY.md`.
 - `ftie::deprecated::encrypt`/`decrypt` (in `ftie.h`/`ftie.cpp`) and `ftie::deprecated::acm::encrypt`/`decrypt`
   (in `acm.h`/`acm.cpp`): a byte-array-based ACM predecessor to the current PNG-based ACM, kept for comparison.
 - `main.cpp` accepts an alternate 8-argument invocation that dispatches to the deprecated pipeline (see below).

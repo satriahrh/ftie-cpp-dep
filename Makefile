@@ -1,3 +1,7 @@
+# experiment f (corpus): manifest in, one CSV row per file out
+MANIFEST ?= experiment/corpus_manifest.csv
+OUT ?= experiment/results/f.csv
+
 experiment-gen-params:
 	g++ -o bin/exp-gen-params.o -std=c++17 ftie/prime.cpp experiment/gen_params.cpp -lgmpxx -lgmp
 	./bin/exp-gen-params.o
@@ -12,21 +16,21 @@ experiment-build-d:
 experiment-build-e:
 	g++ -o bin/exp-e.o -std=c++17 ftie/*.cpp experiment/tools.cpp experiment/e.cpp `libpng-config --ldflags` -lgmpxx -lgmp
 experiment-build-f:
-	g++ -o bin/exp-f.o -std=c++17 ftie/*.cpp experiment/tools.cpp experiment/f.cpp `libpng-config --ldflags` -lgmpxx -lgmp
+	g++ -o bin/exp-f.o -std=c++17 ftie/*.cpp experiment/tools.cpp experiment/manifest.cpp experiment/sha256.cpp experiment/f.cpp `libpng-config --ldflags` -lgmpxx -lgmp
 experiment-build-all:
 	g++ -o bin/exp-a.o -std=c++17 ftie/*.cpp experiment/tools.cpp experiment/a.cpp `libpng-config --ldflags` -lgmpxx -lgmp
 	g++ -o bin/exp-b.o -std=c++17 ftie/*.cpp experiment/tools.cpp experiment/b.cpp `libpng-config --ldflags` -lgmpxx -lgmp
 	g++ -o bin/exp-c.o -std=c++17 ftie/*.cpp experiment/tools.cpp experiment/c.cpp `libpng-config --ldflags` -lgmpxx -lgmp
 	g++ -o bin/exp-d.o -std=c++17 ftie/*.cpp experiment/tools.cpp experiment/d.cpp `libpng-config --ldflags` -lgmpxx -lgmp
 	g++ -o bin/exp-e.o -std=c++17 ftie/*.cpp experiment/tools.cpp experiment/e.cpp `libpng-config --ldflags` -lgmpxx -lgmp
-	g++ -o bin/exp-f.o -std=c++17 ftie/*.cpp experiment/tools.cpp experiment/f.cpp `libpng-config --ldflags` -lgmpxx -lgmp
+	g++ -o bin/exp-f.o -std=c++17 ftie/*.cpp experiment/tools.cpp experiment/manifest.cpp experiment/sha256.cpp experiment/f.cpp `libpng-config --ldflags` -lgmpxx -lgmp
 experiment-run-all:
 	./bin/exp-a.o
 	./bin/exp-b.o
 	./bin/exp-c.o
 	./bin/exp-d.o
 	./bin/exp-e.o
-	./bin/exp-f.o
+	./bin/exp-f.o $(MANIFEST) $(OUT)
 experiment-run-a:
 	./bin/exp-a.o
 experiment-run-b:
@@ -38,4 +42,5 @@ experiment-run-d:
 experiment-run-e:
 	./bin/exp-e.o
 experiment-run-f:
-	./bin/exp-f.o
+	./bin/exp-f.o $(MANIFEST) $(OUT)
+

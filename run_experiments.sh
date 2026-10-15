@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 #
-# Builds and runs the experiment/{a..f}.cpp comparison harnesses sequentially,
+# Builds and runs the experiment/{a..e}.cpp parameter-sweep harnesses sequentially,
 # saving each experiment's output to its own file under experiment/results/.
+# Experiment f (corpus files) has its own runner: run_corpus_experiment.sh.
 #
 # Usage:
-#   ./run_experiments.sh              # run all six, in order, skipping ones already done
-#   ./run_experiments.sh e f          # run only e and f
+#   ./run_experiments.sh              # run all five, in order, skipping ones already done
+#   ./run_experiments.sh d e          # run only d and e
 #   ./run_experiments.sh --force      # re-run everything (params, build, all experiments)
 #   ./run_experiments.sh --force e    # re-run only e
 #
@@ -24,12 +25,13 @@ LETTERS=()
 for arg in "$@"; do
   case "$arg" in
     --force) FORCE=1 ;;
-    a|b|c|d|e|f) LETTERS+=("$arg") ;;
-    *) echo "unknown argument: $arg (expected --force and/or letters a-f)" >&2; exit 1 ;;
+    a|b|c|d|e) LETTERS+=("$arg") ;;
+    f) echo "experiment f runs via ./run_corpus_experiment.sh" >&2; exit 1 ;;
+    *) echo "unknown argument: $arg (expected --force and/or letters a-e)" >&2; exit 1 ;;
   esac
 done
 if [ ${#LETTERS[@]} -eq 0 ]; then
-  LETTERS=(a b c d e f)
+  LETTERS=(a b c d e)
 fi
 
 # per-experiment CSV header; only the first column ("x") differs in meaning per file
@@ -39,7 +41,6 @@ header_for() {
     a|b) x_col="n" ;;
     c|d) x_col="a_param" ;;
     e)   x_col="bits" ;;
-    f)   x_col="size_mb" ;;
   esac
   echo "$x_col,npcr_dep,entropy_dep,avalanche_dep,enc_dep_s,dec_dep_s,npcr_cur,entropy_cur,avalanche_cur,enc_cur_s,dec_cur_s"
 }

@@ -4,8 +4,8 @@ Each experiment (`experiment/{a,b,c,d,e,f}.cpp`) runs the **current** image-base
 pipeline (`ftie::encrypt`/`decrypt`, BBS keystream + RT + PNG packing + ACM permutation)
 side by side with the **deprecated** byte-array pipeline
 (`ftie::deprecated::encrypt`/`decrypt`, literal keystream + RT + ACM, no PNG packing) over
-a sweep of one parameter, holding the others fixed. Every row in `a.csv`..`f.csv` is one
-point in that sweep. `build.log`/`run.log`/`gen-params.log` are the build/run logs from the
+a sweep of one parameter, holding the others fixed. Every row in `a.csv`..`e.csv` (and
+`f_size_sweep.csv`) is one point in that sweep. `build.log`/`run.log`/`gen-params.log` are the build/run logs from the
 `make experiment-*` targets; `*.stderr.log` capture stderr for each binary.
 
 ## Shared methodology
@@ -72,7 +72,12 @@ string, `bits` column header despite holding the modulus value). Named `rt` beca
 the axis that stresses the RT/BBS keystream side of the pipeline (key/modulus size) rather
 than ACM.
 
-## f.cpp — `plainfile` (input size)
+## old f.cpp — `plainfile` (input size), retired: `f_size_sweep.csv`
+
+`experiment/f.cpp` is now the corpus experiment (real files from a manifest, one row per
+file, output `f.csv`); see `experiment/METHODOLOGY.md`. The synthetic size sweep below was
+replaced by it (decision 7 / O8 in `new-experiment.md`), and its results were renamed from
+`f.csv`/`f.stderr.log` to `f_size_sweep.csv`/`f_size_sweep.stderr.log` so they are kept.
 
 Fixes BBS params (largest/last row) and ACM params (`A`, `B` random, `N = 50`), and instead
 sweeps the plaintext size from 0.5 MB to 10 MB (step 0.5 MB, `mb * 100000` bytes per step).
