@@ -31,10 +31,16 @@
 *.out
 *.app
 
-# Others
+# Others    
 test/*
 experiment/dum/*
 experiment/results/*
 experiment/bbs_params.csv
+
+# Corpus experiment (f): un-ignore its result CSV and run record so they
+# are committed normally (the a-e results under experiment/results/ were
+# force-added; bbs_params.csv stays ignored).
+!experiment/results/f.csv
+!experiment/results/f.csv.params
 
 bin/*
