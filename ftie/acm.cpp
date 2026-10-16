@@ -4,7 +4,6 @@
 
 #include <cstdint>
 #include <cmath>
-#include <map>
 
 
 std::vector<std::vector<uint16_t>> modular_matrix_multiplication(
@@ -20,7 +19,7 @@ std::vector<std::vector<uint16_t>> modular_matrix_multiplication(
     for(uint16_t j = 0; j < columns; j++) {
       Ret[i][j] = 0;
       for(uint16_t k = 0; k < intersection; k++) {
-        uint16_t product = A[i][k] * B[k][j] % m;
+        uint16_t product = uint32_t(A[i][k]) * B[k][j] % m;
         Ret[i][j] = (Ret[i][j] + product) % m;
       }
     }
@@ -56,29 +55,34 @@ std::vector<std::vector<uint16_t>> modular_matrix_exponentiation(
   return modular_matrix_multiplication(D, D, m);
 }
 
-uint16_t fibonacci(
-  uint16_t n, uint16_t m=UINT16_MAX, uint16_t a=1
+// Generalized Fibonacci F_k = a*F_{k-1} + F_{k-2} (F_0 = 0, F_1 = 1), mod m,
+// for k = 0..last. Computed fresh per call: a cache keyed only on k would
+// return values computed for another a or m.
+std::vector<uint16_t> fibonacci_sequence(
+  uint32_t last, uint16_t m, uint16_t a
 ) {
-  static std::map<uint16_t, uint16_t> cache{{0, 0}, {1, 1}};
-
-  auto found = cache.find(n);
-  if (found != std::end(cache)) {
-    return found->second;
+  std::vector<uint16_t> f(last + 1);
+  f[0] = 0;
+  if (last >= 1) f[1] = 1 % m;
+  for (uint32_t k = 2; k <= last; k++) {
+    f[k] = (uint32_t(a) * f[k - 1] % m + f[k - 2]) % m;
   }
-
-  uint16_t result = ((a * fibonacci(n - 1, m, a) % m) + fibonacci(n - 2, m, a)) % m;
-  cache[n] = result;
-  return result;
+  return f;
 }
 
 std::vector<std::vector<std::vector<uint16_t>>> mapping_equal(
   uint16_t a, uint16_t b, uint16_t n, uint16_t N
 ) {
+  // A = [[1,a],[a,1+a^2]] = B^2 with B = [[0,1],[1,a]], and
+  // B^k = [[F_{k-1},F_k],[F_k,F_{k+1}]], so A^n = B^{2n}.
+  std::vector<uint16_t> fib = fibonacci_sequence(2 * uint32_t(n) + 1, N, a);
+  uint32_t f0 = fib[2 * n - 1], f1 = fib[2 * n], f2 = fib[2 * n + 1];
+
   std::vector<std::vector<std::vector<uint16_t>>> map(N, std::vector<std::vector<uint16_t>> (N, std::vector<uint16_t> (2)));
   for (uint16_t x = 0; x < N; x++) {
     for (uint16_t y = 0; y < N; y++) {
-      map[x][y][0] = ((fibonacci(2 * n - 1, N, a) * x % N) + (fibonacci(2 * n, N, a) * y % N)) % N;
-      map[x][y][1] = ((fibonacci(2 * n, N, a) * x % N) + (fibonacci(2 * n + 1, N, a) * y % N)) % N;
+      map[x][y][0] = ((f0 * x % N) + (f1 * y % N)) % N;
+      map[x][y][1] = ((f1 * x % N) + (f2 * y % N)) % N;
     }
   }
   return map;
@@ -92,7 +96,7 @@ std::vector<std::vector<std::vector<uint16_t>>> mapping_general(
   A[0][0] = 1;
   A[0][1] = a % N;
   A[1][0] = b % N;
-  A[1][1] = (1 + a * b) % N;
+  A[1][1] = (1 + uint32_t(a) * b) % N; // uint32: a*b can exceed INT_MAX
 
   std::vector<std::vector<uint16_t>> An = modular_matrix_exponentiation(A, n, N);
   std::vector<std::vector<std::vector<uint16_t>>> map(N, std::vector<std::vector<uint16_t>> (N, std::vector<uint16_t> (2)));

@@ -1,5 +1,12 @@
 # Experiment results
 
+> **Pilot run (2026-08-30).** The CSVs described below are the pilot, produced by the code before
+> the fixes in `experiment/METHODOLOGY.md` §10. The planned re-run replaces `a.csv`–`e.csv` with a
+> new schema (`prime_bits, acm_a, acm_b, acm_n`, then `npcr, npcr_ch, uaci, entropy, chi2,
+> avalanche, enc_s, dec_s` per pipeline; e adds `modulus`) and adds `f.csv` (corpus), `env.txt` and
+> the committed `experiment/bbs_params.csv`. See `experiment/METHODOLOGY.md` §8 for the current
+> layout; this file documents the pilot only.
+
 Each experiment (`experiment/{a,b,c,d,e,f}.cpp`) runs the **current** image-based FTIE
 pipeline (`ftie::encrypt`/`decrypt`, BBS keystream + RT + PNG packing + ACM permutation)
 side by side with the **deprecated** byte-array pipeline

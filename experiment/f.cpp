@@ -1,7 +1,9 @@
 // make experiment-build-f && make experiment-run-f
 // Corpus-driven experiment: one row of metrics per manifest file, instead
 // of a-e.cpp's single-parameter sweeps over random plaintext (it replaces
-// the old synthetic f.cpp size sweep, decision 7 / O8). See new-experiment.md for the requirements this implements (D1,D7,M1-M7,O1-O3,O6).
+// the old synthetic f.cpp size sweep, decision 7 / O8). See
+// new-experiment.md for the requirements this implements (D1,D7,M1-M7,O1-O3,O6)
+// and experiment/METHODOLOGY.md §7.
 //
 // Usage: ./bin/exp-f.o [manifest-csv] [output-csv]
 //   defaults: experiment/corpus_manifest.csv, experiment/results/f.csv
@@ -11,21 +13,20 @@
 // resume requires reading back which files are already done: a run that
 // stops partway can be re-invoked with the same args and will skip
 // already-completed files (matched by sha256) rather than redoing them.
-// BBS and ACM parameters are drawn once on a run's first invocation and
-// frozen in a sidecar "<output-csv>.params" file so a resumed run reuses
-// the exact same parameters rather than silently mixing two parameter sets
-// across rows.
-#include "../ftie/ftie.h"
+// The key is drawn once on a run's first invocation and frozen so a
+// resumed run never mixes two keys across rows: BBS/ACM parameters in the
+// sidecar "<output-csv>.params", and the deprecated pipeline's random
+// keystream in "<output-csv>.keystream" (its SHA-256 recorded in .params).
 #include "../experiment/manifest.h"
 #include "../experiment/sha256.h"
 #include "../experiment/tools.h"
 
-#include <chrono>
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
-#include <random>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -42,6 +43,8 @@ namespace {
     unsigned int bits;
     mpz_class p, q, s;
     uint16_t acm_a, acm_b, acm_n;
+    uint64_t keystream_bytes = 0;
+    std::string keystream_sha256;
   };
 
   // key=value lines; returns false if the sidecar doesn't exist yet.
@@ -63,8 +66,14 @@ namespace {
       else if (key == "acm_a") out.acm_a = static_cast<uint16_t>(std::stoul(val));
       else if (key == "acm_b") out.acm_b = static_cast<uint16_t>(std::stoul(val));
       else if (key == "acm_n") out.acm_n = static_cast<uint16_t>(std::stoul(val));
+      else if (key == "keystream_bytes") out.keystream_bytes = std::stoull(val);
+      else if (key == "keystream_sha256") out.keystream_sha256 = val;
     }
     if (pStr.empty() || qStr.empty() || sStr.empty()) return false;
+    if (out.keystream_sha256.empty()) {
+      throw std::runtime_error(paramsPath + " has no keystream_sha256 (written by an older harness); "
+        "delete it and the output CSV to start a fresh run");
+    }
 
     out.p = mpz_class(pStr, 10);
     out.q = mpz_class(qStr, 10);
@@ -81,6 +90,9 @@ namespace {
     file << "acm_a=" << params.acm_a << "\n";
     file << "acm_b=" << params.acm_b << "\n";
     file << "acm_n=" << params.acm_n << "\n";
+    file << "keystream_bytes=" << params.keystream_bytes << "\n";
+    file << "keystream_sha256=" << params.keystream_sha256 << "\n";
+    file << "timing_repeats=" << tools::TIMING_REPEATS << "\n";
     file << "manifest=" << manifestPath << "\n";
   }
 
@@ -111,17 +123,13 @@ namespace {
     if (size > 0) file.read(reinterpret_cast<char*>(bytes.data()), size);
     return bytes;
   }
-
-  void write_file_bytes(const std::string & path, const std::vector<uint8_t> & bytes) {
-    std::ofstream file(path, std::ios::out | std::ios::binary);
-    if (!bytes.empty()) file.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
-  }
 }
 
 int main(int argc, char const *argv[]) {
   const std::string manifestPath = argc > 1 ? argv[1] : "experiment/corpus_manifest.csv";
   const std::string outputCsvPath = argc > 2 ? argv[2] : "experiment/results/f.csv";
   const std::string paramsPath = outputCsvPath + ".params";
+  const std::string keystreamPath = outputCsvPath + ".keystream";
 
   try {
     std::filesystem::create_directories("experiment/dum");
@@ -155,34 +163,44 @@ int main(int argc, char const *argv[]) {
       }
     }
 
-    std::random_device generateRandom;
+    std::vector<tools::CorpusFile> manifest = tools::read_manifest(manifestPath.c_str());
 
     RunParams params;
-    if (!load_params(paramsPath, params)) {
-      std::vector<tools::BbsParams> bbsParams = tools::read_bbs_params("experiment/bbs_params.csv");
-      const tools::BbsParams & last = bbsParams.back();
+    std::vector<uint8_t> keystream;
+    if (load_params(paramsPath, params)) {
+      keystream = read_file_bytes(keystreamPath);
+      if (keystream.size() != params.keystream_bytes ||
+          tools::sha256_bytes(keystream.data(), keystream.size()) != params.keystream_sha256) {
+        throw std::runtime_error(keystreamPath + " does not match keystream_sha256 in " + paramsPath +
+          "; restore it, or delete the params, keystream and output CSV to start a fresh run");
+      }
+    } else {
+      const tools::BbsParams last = tools::read_bbs_params("experiment/bbs_params.csv").back();
       params.bits = last.bits;
       params.p = last.p;
       params.q = last.q;
       params.s = last.s;
-      params.acm_a = generateRandom();
-      params.acm_b = generateRandom();
+      params.acm_a = tools::random_acm_parameter();
+      params.acm_b = tools::random_acm_parameter();
       params.acm_n = 50;
+
+      // Deprecated-pipeline keystream: rt::encrypt indexes it modulo its
+      // length, so size it past the largest padded plainfile (padding adds
+      // well under 64 KiB at 10 MB) so it never wraps within a file; at
+      // least 10,000,000 bytes, the a-e convention.
+      uint64_t largest = 0;
+      for (const tools::CorpusFile & f : manifest) largest = std::max(largest, f.size_bytes);
+      keystream = tools::random_bytes(std::max<uint64_t>(10000000, largest + 65536));
+      tools::write_bytes(keystreamPath, keystream);
+      params.keystream_bytes = keystream.size();
+      params.keystream_sha256 = tools::sha256_bytes(keystream.data(), keystream.size());
       write_params(paramsPath, params, manifestPath);
     }
 
-    // Deprecated-pipeline keystream: a fixed-size random buffer, matching
-    // a-e.cpp's existing convention exactly. rt::encrypt indexes this
-    // modulo its length, so one buffer generated once per run is correct
-    // for every file regardless of plainfile size -- no per-file or
-    // per-manifest-max sizing is needed.
-    std::vector<uint8_t> keystream(10000000);
-    for (size_t i = 0; i < keystream.size(); i++) keystream[i] = generateRandom();
-
-    std::vector<tools::CorpusFile> manifest = tools::read_manifest(manifestPath.c_str());
     std::set<std::string> done = load_done_sha256(outputCsvPath);
 
     std::ofstream out(outputCsvPath, std::ios::out | std::ios::app);
+    out << std::setprecision(tools::CSV_PRECISION);
     if (needsHeader) {
       out << header << "\n";
       out.flush();
@@ -195,71 +213,31 @@ int main(int argc, char const *argv[]) {
       }
 
       try {
-        std::string tag = f.sha256.substr(0, 12);
         const std::string & plainfile1 = f.path;
-        std::string plainfile2 = "experiment/dum/f_" + tag + "_plainfile_2";
-        std::string cipherimage1 = "experiment/dum/f_" + tag + "_cipherimage_1";
-        std::string cipherimage2 = "experiment/dum/f_" + tag + "_cipherimage_2";
-        std::string roundtrip1 = "experiment/dum/f_" + tag + "_roundtrip_1";
 
-        // plainfile_2: plainfile_1 with bit 0 of byte 0 flipped (M4; same
-        // scheme as a-e.cpp's byte-0 1-vs-3 convention, generalized to a
-        // single bit flip since corpus plainfiles don't start at byte 1).
-        std::vector<uint8_t> plainBytes1 = read_file_bytes(plainfile1);
-        std::vector<uint8_t> plainBytes2 = plainBytes1;
-        if (!plainBytes2.empty()) plainBytes2[0] ^= 0x01;
-        write_file_bytes(plainfile2, plainBytes2);
-
-        double npcr_dep, npcr_cur, npcr_ch_dep, npcr_ch_cur;
-        double uaci_dep, uaci_cur;
-        double entropy_dep, entropy_cur;
-        double chi2_dep, chi2_cur;
-        double avalanche_dep, avalanche_cur;
-        std::chrono::duration<double> enc_dep, dec_dep, enc_cur, dec_cur;
-
-        {
-          enc_dep = tools::chrono_deprecated_encrypt(keystream, params.acm_a, params.acm_b, params.acm_n, plainfile1.c_str(), cipherimage1.c_str());
-          dec_dep = tools::chrono_deprecated_decrypt(keystream, params.acm_a, params.acm_b, params.acm_n, cipherimage1.c_str(), roundtrip1.c_str());
-          if (read_file_bytes(roundtrip1) != plainBytes1) {
-            throw std::runtime_error("deprecated round-trip mismatch for " + f.file_name);
-          }
-
-          ftie::deprecated::encrypt(keystream, params.acm_a, params.acm_b, params.acm_n, plainfile1.c_str(), cipherimage2.c_str());
-          npcr_dep = tools::calculate_npcr(cipherimage1.c_str(), cipherimage2.c_str());
-          npcr_ch_dep = tools::calculate_npcr_channel(cipherimage1.c_str(), cipherimage2.c_str());
-          uaci_dep = tools::calculate_uaci(cipherimage1.c_str(), cipherimage2.c_str());
-
-          entropy_dep = tools::calculate_entropy(cipherimage1.c_str());
-          chi2_dep = tools::calculate_chi_square(cipherimage1.c_str());
-
-          ftie::deprecated::encrypt(keystream, params.acm_a, params.acm_b, params.acm_n, plainfile2.c_str(), cipherimage2.c_str());
-          avalanche_dep = tools::calculate_avalanche(cipherimage1.c_str(), cipherimage2.c_str());
+        // D7: the file on disk must be the one the manifest describes.
+        uint64_t actualSize = std::filesystem::file_size(plainfile1);
+        if (actualSize != f.size_bytes) {
+          throw std::runtime_error("size " + std::to_string(actualSize) + " != manifest " + std::to_string(f.size_bytes));
+        }
+        if (tools::sha256_file(plainfile1.c_str()) != f.sha256) {
+          throw std::runtime_error("sha256 does not match the manifest");
         }
 
-        {
-          enc_cur = tools::chrono_encrypt(params.p, params.q, params.s, params.acm_a, params.acm_b, params.acm_n, plainfile1.c_str(), cipherimage1.c_str());
-          dec_cur = tools::chrono_decrypt(params.p, params.q, params.s, params.acm_a, params.acm_b, params.acm_n, cipherimage1.c_str(), roundtrip1.c_str());
-          if (read_file_bytes(roundtrip1) != plainBytes1) {
-            throw std::runtime_error("current round-trip mismatch for " + f.file_name);
-          }
+        std::string dum = "experiment/dum/f_" + f.sha256.substr(0, 12);
+        const tools::ScratchPaths paths = {
+          dum + "_plainfile_2", dum + "_cipherimage_1", dum + "_cipherimage_2", dum + "_roundtrip_1"
+        };
+        tools::write_bit1_flipped(plainfile1.c_str(), paths.plain2.c_str());
 
-          ftie::encrypt(params.p, params.q, params.s, params.acm_a, params.acm_b, params.acm_n, plainfile1.c_str(), cipherimage2.c_str());
-          npcr_cur = tools::calculate_npcr(cipherimage1.c_str(), cipherimage2.c_str());
-          npcr_ch_cur = tools::calculate_npcr_channel(cipherimage1.c_str(), cipherimage2.c_str());
-          uaci_cur = tools::calculate_uaci(cipherimage1.c_str(), cipherimage2.c_str());
-
-          entropy_cur = tools::calculate_entropy(cipherimage1.c_str());
-          chi2_cur = tools::calculate_chi_square(cipherimage1.c_str());
-
-          ftie::encrypt(params.p, params.q, params.s, params.acm_a, params.acm_b, params.acm_n, plainfile2.c_str(), cipherimage2.c_str());
-          avalanche_cur = tools::calculate_avalanche(cipherimage1.c_str(), cipherimage2.c_str());
-        }
+        tools::PipelineResult dep = tools::measure_deprecated(keystream, params.acm_a, params.acm_b, params.acm_n, plainfile1, paths);
+        tools::PipelineResult cur = tools::measure_current(params.p, params.q, params.s, params.acm_a, params.acm_b, params.acm_n, plainfile1, paths);
 
         // Both pipelines pad/pack identically for a given plainfile, so
         // cipherimage dimensions are the same either way -- one read
         // suffices (cipherimage1 here holds the _cur pipeline's output,
         // written last).
-        png::image<png::rgb_pixel> dims(cipherimage1.c_str());
+        png::image<png::rgb_pixel> dims(paths.cipher1.c_str());
         uint32_t width = dims.get_width();
         uint32_t height = dims.get_height();
 
@@ -273,11 +251,11 @@ int main(int argc, char const *argv[]) {
         out << f.type << "," << f.subset << "," << f.file_name << "," << f.sha256 << "," << f.size_bytes << ","
             << width << "," << height << ","
             << entropy_plain << "," << chi2_plain << ","
-            << npcr_dep << "," << npcr_cur << "," << npcr_ch_dep << "," << npcr_ch_cur << ","
-            << uaci_dep << "," << uaci_cur << ","
-            << entropy_dep << "," << entropy_cur << "," << chi2_dep << "," << chi2_cur << ","
-            << avalanche_dep << "," << avalanche_cur << ","
-            << enc_dep.count() << "," << dec_dep.count() << "," << enc_cur.count() << "," << dec_cur.count() << ","
+            << dep.npcr << "," << cur.npcr << "," << dep.npcr_ch << "," << cur.npcr_ch << ","
+            << dep.uaci << "," << cur.uaci << ","
+            << dep.entropy << "," << cur.entropy << "," << dep.chi2 << "," << cur.chi2 << ","
+            << dep.avalanche << "," << cur.avalanche << ","
+            << dep.enc_s << "," << dep.dec_s << "," << cur.enc_s << "," << cur.dec_s << ","
             << npcr_crit << "," << uaci_crit.first << "," << uaci_crit.second << "," << entropy_crit << "\n";
         out.flush();
 

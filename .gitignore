@@ -35,12 +35,16 @@
 test/*
 experiment/dum/*
 experiment/results/*
-experiment/bbs_params.csv
 
-# Corpus experiment (f): un-ignore its result CSV and run record so they
-# are committed normally (the a-e results under experiment/results/ were
-# force-added; bbs_params.csv stays ignored).
+# Results committed normally: experiment f's CSV and run record, its stderr
+# log and archive hashes, and the shared environment record. (The a-e
+# results under experiment/results/ are already tracked, so they need no
+# exception; experiment/bbs_params.csv, the BBS keys of every run, is
+# committed too.) <letter>.csv.partial and f.csv.keystream stay ignored.
 !experiment/results/f.csv
 !experiment/results/f.csv.params
+!experiment/results/f.stderr.log
+!experiment/results/f.archives.sha256
+!experiment/results/env.txt
 
 bin/*

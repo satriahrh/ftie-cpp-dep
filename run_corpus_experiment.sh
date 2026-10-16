@@ -6,7 +6,9 @@
 # "<output-csv>.params" sidecar f.cpp uses to freeze its BBS/ACM
 # parameters -- those parameter lines are written once by the binary and
 # never touched here; this script only ever appends/refreshes its own
-# three lines.
+# three lines. Every invocation also appends a block to env.txt next to the
+# output CSV (experiment/record_env.sh), and the binary's stderr (done /
+# skip / FAILED lines) to <output-csv minus .csv>.stderr.log.
 #
 # Usage:
 #   ./run_corpus_experiment.sh                                   # defaults: experiment/corpus_manifest.csv -> experiment/results/f.csv
@@ -21,11 +23,25 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 MANIFEST="${1:-experiment/corpus_manifest.csv}"
 OUT="${2:-experiment/results/f.csv}"
 PARAMS="$OUT.params"
+LOG="${OUT%.csv}.stderr.log"
+BBS_PARAMS="experiment/bbs_params.csv"
 
 mkdir -p bin experiment/dum "$(dirname "$OUT")"
 
 command -v g++ >/dev/null 2>&1 || { echo "g++ not found on PATH" >&2; exit 1; }
 command -v libpng-config >/dev/null 2>&1 || { echo "libpng-config not found on PATH" >&2; exit 1; }
+
+experiment/record_env.sh "run_corpus_experiment.sh $MANIFEST -> $OUT" "$(dirname "$OUT")/env.txt"
+
+# Same rule as run_experiments.sh: generate BBS keys only when missing, so
+# a-e and f share one bbs_params.csv whichever runs first.
+if [ ! -s "$BBS_PARAMS" ]; then
+  echo "generating BBS params (make experiment-gen-params)"
+  if ! make experiment-gen-params; then
+    echo "FAILED to generate BBS params - aborting" >&2
+    exit 1
+  fi
+fi
 
 echo "building experiment/f.cpp (make experiment-build-f)"
 if ! make experiment-build-f; then
@@ -33,8 +49,9 @@ if ! make experiment-build-f; then
   exit 1
 fi
 
-echo "running corpus experiment (manifest=$MANIFEST, output=$OUT)"
-make experiment-run-f MANIFEST="$MANIFEST" OUT="$OUT"
+echo "running corpus experiment (manifest=$MANIFEST, output=$OUT, stderr also in $LOG)"
+echo "=== $(date -u '+%Y-%m-%dT%H:%M:%SZ') run_corpus_experiment.sh $MANIFEST -> $OUT" >> "$LOG"
+make experiment-run-f MANIFEST="$MANIFEST" OUT="$OUT" 2> >(tee -a "$LOG" >&2)
 code=$?
 
 # O5 run record: refresh these three lines every invocation (the BBS/ACM

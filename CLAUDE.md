@@ -11,10 +11,13 @@ added:
 - A `Makefile` with `experiment-build-*` / `experiment-run-*` targets.
 - An `experiment/` directory (`a.cpp`..`f.cpp`, `tools.h`/`tools.cpp`) containing standalone comparison
   harnesses that benchmark the current image-based pipeline against the deprecated byte-array pipeline
-  (NPCR, entropy, avalanche effect, timing). `a.cpp`..`e.cpp` sweep one parameter over random plaintext
-  (`run_experiments.sh`); `f.cpp` runs on real corpus files listed in a manifest
-  (`run_corpus_experiment.sh`, also `manifest.*`, `sha256.*`). Methodology and pre-flight notes:
-  `experiment/METHODOLOGY.md`.
+  (NPCR, UACI, entropy, χ², avalanche effect, timing). `a.cpp`..`e.cpp` sweep one parameter over random
+  plaintext (`run_experiments.sh`; each binary prints its own CSV header, and every row carries its key);
+  `f.cpp` runs on real corpus files listed in a manifest (`run_corpus_experiment.sh`, also `manifest.*`,
+  `sha256.*`, `build_manifest.sh`). All six measure through the shared
+  `tools::measure_current`/`measure_deprecated` (round-trip check, median of `tools::TIMING_REPEATS`
+  timings). Both run scripts append to `experiment/results/env.txt` via `experiment/record_env.sh`.
+  Methodology, review findings and the EC2 procedure: `experiment/METHODOLOGY.md`.
 - `ftie::deprecated::encrypt`/`decrypt` (in `ftie.h`/`ftie.cpp`) and `ftie::deprecated::acm::encrypt`/`decrypt`
   (in `acm.h`/`acm.cpp`): a byte-array-based ACM predecessor to the current PNG-based ACM, kept for comparison.
 - `main.cpp` accepts an alternate 8-argument invocation that dispatches to the deprecated pipeline (see below).
@@ -45,7 +48,9 @@ libpng, so use instead:
 ```
 g++ -o bin/ftie-cli -std=c++17 -I/opt/homebrew/include -L/opt/homebrew/lib ftie/*.cpp main.cpp `libpng-config --cflags --ldflags` -lgmpxx -lgmp
 ```
-(same `-I`/`-L` applies to the Makefile's `experiment-build-*` targets too, if building those on macOS.)
+(for the Makefile's `experiment-*` targets on macOS, pass the same paths via `EXTRA_FLAGS`, e.g.
+``make experiment-build-a EXTRA_FLAGS="-I/opt/homebrew/include -L/opt/homebrew/lib `libpng-config --cflags`"``;
+the run scripts pick `EXTRA_FLAGS` up from the environment.)
 
 Use the Makefile to build/run the comparison harnesses:
 ```

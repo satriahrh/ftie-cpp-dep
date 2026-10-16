@@ -3,6 +3,8 @@
 
 #include <chrono>
 #include <cstdint>
+#include <ostream>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -16,9 +18,68 @@ namespace tools {
 
   std::vector<BbsParams> read_bbs_params(const char* csvFilepath);
 
+  // Timed encrypt/decrypt runs per configuration; the median is reported.
+  // Set to 1 for the paper's run (F11 in experiment/METHODOLOGY.md); 3 would
+  // roughly double total run time.
+  constexpr int TIMING_REPEATS = 1;
+
+  // Scratch files one measurement writes. plain2 must already exist
+  // (see write_bit1_flipped); the others are overwritten.
+  struct ScratchPaths {
+    std::string plain2, cipher1, cipher2, roundtrip;
+  };
+
+  // Everything measured for one pipeline on one plainfile:
+  //   enc_s/dec_s: median over TIMING_REPEATS of Enc(P1)->C1 and Dec(C1),
+  //                each decryption checked byte-for-byte against P1;
+  //   npcr, npcr_ch, uaci: C1 vs a second Enc(P1);
+  //   entropy, chi2: C1;
+  //   avalanche: C1 vs Enc(P2).
+  struct PipelineResult {
+    double enc_s, dec_s, npcr, npcr_ch, uaci, entropy, chi2, avalanche;
+  };
+
+  // Throw std::runtime_error on a round-trip mismatch.
+  PipelineResult measure_current(
+    const mpz_class & p, const mpz_class & q, const mpz_class & s,
+    uint16_t a, uint16_t b, uint16_t n,
+    const std::string & plainfile1, const ScratchPaths & paths
+  );
+  PipelineResult measure_deprecated(
+    const std::vector<uint8_t> & keystream,
+    uint16_t a, uint16_t b, uint16_t n,
+    const std::string & plainfile1, const ScratchPaths & paths
+  );
+
+  // P2 for the avalanche pair: a copy of src with bit 1 of byte 0 flipped
+  // (the a-e convention 0x01 -> 0x03, requirement M4).
+  void write_bit1_flipped(const char * srcFilepath, const char * dstFilepath);
+  bool files_equal(const char * path1, const char * path2);
+
+  std::vector<uint8_t> random_bytes(size_t n);
+  void write_bytes(const std::string & filepath, const std::vector<uint8_t> & bytes);
+  // ACM rejects a == 0 or b == 0, so random ACM parameters are drawn from 1..65535.
+  uint16_t random_acm_parameter();
+
+  // CSV layout shared by the a-e sweeps: every row carries its full key
+  // (prime_bits identifies the bbs_params.csv row holding p, q, s), then
+  // the PipelineResult metrics for the deprecated and current pipelines.
+  extern const char * const SWEEP_HEADER;
+  void write_sweep_row(
+    std::ostream & out, unsigned int primeBits, uint16_t a, uint16_t b, uint16_t n,
+    const PipelineResult & dep, const PipelineResult & cur
+  );
+
+  // Significant digits for every result CSV: entropy's shortfall from 8 is
+  // ~1e-5, so the stream default of 6 would round it away.
+  constexpr int CSV_PRECISION = 10;
+
+  // Fraction of differing bits over the decoded pixel bytes of two
+  // equally sized cipherimages (not the PNG file bytes, whose identical
+  // container framing biases the value below 0.5).
   double calculate_avalanche(
-    const char * path_1,
-    const char * path_2
+    const char * cipherimage1Filepath,
+    const char * cipherimage2Filepath
   );
   double calculate_entropy(
     const char * cipherimageFilepath
@@ -60,7 +121,10 @@ namespace tools {
   );
 
   // M3 per-image critical values, parameterized by the cipherimage's
-  // actual width/height rather than a fixed table entry.
+  // actual width/height rather than a fixed table entry. NPCR and UACI
+  // account for RT's byte pairs: both bytes of a pair change together
+  // between two encryptions, so the 3WH channel bytes are 1.5WH
+  // independent samples (F2 in experiment/METHODOLOGY.md).
   double npcr_critical_value(uint32_t width, uint32_t height, double z);
   std::pair<double, double> uaci_critical_range(uint32_t width, uint32_t height, double z);
   double entropy_critical_value(uint32_t width, uint32_t height, double chiSquareCritical);
@@ -74,6 +138,13 @@ namespace tools {
   // not depend on image size).
   constexpr double CHI_SQUARE_CRITICAL_DF255_ALPHA_05 = 293.25;
   constexpr double CHI_SQUARE_CRITICAL_DF255_ALPHA_01 = 310.46;
+
+  // Variance of one RT pair's UACI term (|dC_2i| + |dC_2i+1|) / (2*255),
+  // exact, by enumerating c1, c1', d in [0,256)^3 with c2 = c1 + d,
+  // c2' = c1' + d (mod 256), d = K - P' uniform. The single-byte variance
+  // from the same enumeration is 0.0559930 (Wu et al.'s 0.05599); the
+  // within-pair correlation is 0.400.
+  constexpr double UACI_PAIR_VARIANCE = 0.0391966337;
 
   // M2 validity floor: each of 256 bins needs expected count >= 5, i.e.
   // n >= 1280. Not auto-enforced by calculate_chi_square(_bytes); callers
@@ -90,12 +161,12 @@ namespace tools {
   );
 
   std::chrono::duration<double> chrono_deprecated_encrypt(
-    std::vector<uint8_t> keystream, uint16_t a, uint16_t b, uint16_t n,
+    const std::vector<uint8_t> & keystream, uint16_t a, uint16_t b, uint16_t n,
     const char* plainfileFilepath, const char* cipherimageFilepath
   );
 
   std::chrono::duration<double> chrono_deprecated_decrypt(
-    std::vector<uint8_t> keystream, uint16_t a, uint16_t b, uint16_t n,
+    const std::vector<uint8_t> & keystream, uint16_t a, uint16_t b, uint16_t n,
     const char* cipherimageFilepath, const char* plainfileFilepath
   );
 }
