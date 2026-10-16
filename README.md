@@ -35,5 +35,23 @@ aws ec2 authorize-security-group-ingress --group-id 'sg-preview-1' --ip-permissi
 aws ec2 run-instances --image-id 'ami-0f8a61b66d1accaee' --instance-type 'c7i.large' --ebs-optimized --block-device-mappings '{"DeviceName":"/dev/sda1","Ebs":{"Encrypted":false,"DeleteOnTermination":true,"Iops":3000,"SnapshotId":"snap-0cc002ff6c0b55ad2","VolumeSize":20,"VolumeType":"gp3","Throughput":125}}' --network-interfaces '{"AssociatePublicIpAddress":true,"DeviceIndex":0,"Groups":["sg-preview-1"]}' --metadata-options '{"HttpEndpoint":"enabled","HttpPutResponseHopLimit":2,"HttpTokens":"required"}' --private-dns-name-options '{"HostnameType":"ip-name","EnableResourceNameDnsARecord":true,"EnableResourceNameDnsAAAARecord":false}' --count '1' 
 ```
 
+## Running the Experiments
+
+After launching the instance above and connecting with `ssh -i <key.pem> ubuntu@<public-ip>`, follow
+[experiment/RUNBOOK.md](experiment/RUNBOOK.md). In short:
+
+```
+git clone https://github.com/satriahrh/ftie-cpp-dep.git && cd ftie-cpp-dep
+./setup_vps.sh
+tmux new -s ftie
+# download + extract the NapierOne Tiny archives, then:
+experiment/build_manifest.sh "$HOME/napierone" <download-date>
+rm -f experiment/results/[a-e].csv
+./run_experiments.sh ; ./run_corpus_experiment.sh      # ≈ 5.6 h; rerun the same line to resume
+```
+
+What each experiment measures, the review findings and the analysis plan are in
+[experiment/METHODOLOGY.md](experiment/METHODOLOGY.md).
+
 ## Deprecated System Block Diagram [[1]](https://www.researchgate.net/publication/320087595_File_To_Image_Encryption_FTIE_Menggunakan_Algoritma_Randomized_Text_Dan_Arnold_Cat_Map_ACM_Untuk_Keamanan_Transmisi_Data_Digital)
 ![Deprecated System Block Diagram](data/system-block-diagram-deprecated.png)

@@ -752,52 +752,22 @@ measurement and what it covers.
 
 ## 12. EC2 run procedure (all experiments)
 
-**Before launching (on your machine):** commit and push all code changes, so `env.txt` records a
-clean commit (`git_dirty=no`).
+The step-by-step commands, from SSH login to commit, are in [RUNBOOK.md](RUNBOOK.md). The principles
+behind them:
 
-**Instance:** Ubuntu 24.04, x86-64 or Graviton, **not burstable** (avoid t3/t4g: CPU credits distort
-timing; c7i.large is enough), 20 GB disk. The code is single-threaded. Run nothing else on it, and
-run a–e and f one after the other, not in parallel, so they do not disturb each other's timing.
-
-Both run scripts generate `bbs_params.csv` only if it is missing, so a–e and f share one key file in
-either order; a–e first is the natural order. Both scripts can simply be re-run after an interruption.
-
-```bash
-# 1. Setup
-git clone git@github.com:satriahrh/ftie-cpp-dep.git && cd ftie-cpp-dep
-./setup_vps.sh
-tmux new -s ftie                                              # detach Ctrl-b d, reattach: tmux attach -t ftie
-
-# 2. a–e (≈ 2.4 h): --force replaces the pilot CSVs
-./run_experiments.sh --force
-#    if interrupted: ./run_experiments.sh   (redoes unfinished letters, same keys)
-grep -E "finished|FAILED" experiment/results/run.log | tail -5   # all five "exit 0"
-wc -l experiment/results/[a-e].csv                              # 31 lines each (header + 30)
-
-# 3. f corpus: download the 7 Tiny archives and extract one folder per subset:
-#    ~/napierone/{DOCX,XLSX,PPTX,PDF,MP3,MP4-FROM-WEB,JPG-FROM-WEB}/
-sha256sum ~/napierone-archives/*.zip > experiment/results/f.archives.sha256
-experiment/build_manifest.sh ~/napierone <download-date YYYY-MM-DD>
-#    expect 100 per subset, PPTX 94, PDF 98 (§7.1)
-
-# 4. f smoke test on 3 files
-head -4 experiment/corpus_manifest.csv > experiment/dum/smoke_manifest.csv
-./run_corpus_experiment.sh experiment/dum/smoke_manifest.csv experiment/dum/smoke_f.csv
-
-# 5. f full run (≈ 3.2 h); if interrupted, run the same command again
-./run_corpus_experiment.sh
-wc -l < experiment/results/f.csv; wc -l < experiment/corpus_manifest.csv   # equal
-grep -c FAILED experiment/results/f.stderr.log                             # 0
-
-# 6. Commit
-git add experiment/bbs_params.csv experiment/corpus_manifest.csv experiment/results/
-git status --short                                                       # review before committing
-git commit -m "experiment re-run: a-e and corpus f" && git push
-```
-
-Also check that no NaN appears in the CSVs and that `env.txt` shows `git_dirty=no`. To push from EC2
-the instance needs a GitHub key with write access; otherwise copy the files listed in §8.2 back with
-`scp`.
+- **Code committed and pushed first**, so `env.txt` records a clean commit (`git_dirty=no`).
+- **Instance:** Ubuntu 24.04, **not burstable** (avoid t3/t4g: CPU credits distort timing; c7i.large
+  is enough), 20 GB disk. The code is single-threaded. Nothing else runs on the instance, and a–e and f
+  run one after the other, not in parallel, so they do not disturb each other's timing.
+- **Corpus and manifest prepared before the long run**, and a smoke test on three files, so the
+  ≈ 5.6 h run is unattended: `./run_experiments.sh ; ./run_corpus_experiment.sh`.
+- **One key file.** Both scripts generate `bbs_params.csv` only if it is missing (the smoke test
+  creates it), so a–e and f share it.
+- **Pilot CSVs removed once before the run** (`rm experiment/results/[a-e].csv`). Then the run command
+  doubles as the resume command after any interruption: a–e redo only experiments without a finished
+  CSV, f skips files already in `f.csv`.
+- **Checks before committing:** five a–e experiments with exit 0 and 31 lines each, no `.partial`
+  files, empty a–e stderr logs, f rows = manifest files, no FAILED or NaN, `git_dirty=no`.
 
 ---
 
