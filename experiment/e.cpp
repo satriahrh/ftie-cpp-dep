@@ -1,6 +1,6 @@
 // make experiment-build-e && make experiment-run-e
 // Experiment e: BBS key size: every row of bbs_params.csv (prime sizes 16 to
-// 1024 bits, modulus ~32 to ~2048 bits), with random a, b and n = 50. The
+// 1024 bits, modulus ~32 to ~2048 bits), with pinned a, b and n = 50. The
 // previous pipeline does not use BBS and serves as a control.
 // 3.21 MB random plainfile (byte 0 = 0x01; P2 flips bit 1), last bbs_params.csv
 // row unless noted. Prints its own CSV header, then one row per sweep value,
@@ -33,16 +33,21 @@ int main() {
     // Previous-pipeline keystream sized to the plainfile, as in the pilot.
     std::vector<uint8_t> keystream = tools::random_bytes(plainbytes.size());
     const std::vector<tools::BbsParams> bbsRows = tools::read_bbs_params("experiment/bbs_params.csv");
-    const uint16_t a = tools::random_acm_parameter();
-    const uint16_t b = tools::random_acm_parameter();
+    // Pinned to the values drawn in the 2026-10-16 run, so the re-run differs
+    // from it only by seed chaining (experiment/METHODOLOGY.md §5.1).
+    const uint16_t a = 48945;
+    const uint16_t b = 49252;
     const uint16_t n = 50;
 
     std::cout << std::setprecision(tools::CSV_PRECISION);
     std::cout << tools::SWEEP_HEADER << ",modulus\n";
     for (const tools::BbsParams & bbs : bbsRows) {
+      // Each row is its own key, so its seed chain starts at that row's s.
+      mpz_class seed = bbs.s;
       tools::PipelineResult prev = tools::measure_previous(keystream, a, b, n, plainfile1, paths);
-      tools::PipelineResult prop = tools::measure_proposed(bbs.p, bbs.q, bbs.s, a, b, n, plainfile1, paths);
-      tools::write_sweep_row(std::cout, bbs.bits, a, b, n, prev, prop);
+      tools::ProposedSeeds seeds;
+      tools::PipelineResult prop = tools::measure_proposed(bbs.p, bbs.q, seed, a, b, n, plainfile1, paths, seeds);
+      tools::write_sweep_row(std::cout, bbs.bits, a, b, n, prev, prop, seeds);
       mpz_class m = bbs.p * bbs.q;
       std::cout << "," << m.get_str(10) << std::endl;
     }

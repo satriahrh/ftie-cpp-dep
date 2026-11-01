@@ -24,6 +24,10 @@ one at a time:
 ```
 Run it twice to get distinct `P` and `Q`, then pass the printed decimal values as CLI args to `encrypt`/`decrypt`.
 
+`S` is the seed of one message. `encrypt` prints `Next seed: …`, the last BBS state, which is the `S`
+for the next message under the same `P`/`Q`, so every message gets its own keystream. Decrypt each
+cipherimage with the `S` it was encrypted with.
+
 ## System Block Diagram
 ![System Block Diagram](data/system-block-diagram.png)
 

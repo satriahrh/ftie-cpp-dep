@@ -120,15 +120,16 @@ namespace tools {
   }
 
   PipelineResult measure_proposed(
-    const mpz_class & p, const mpz_class & q, const mpz_class & s,
+    const mpz_class & p, const mpz_class & q, mpz_class & seed,
     uint16_t a, uint16_t b, uint16_t n,
-    const std::string & plainfile1, const ScratchPaths & paths
+    const std::string & plainfile1, const ScratchPaths & paths, ProposedSeeds & used
   ) {
     PipelineResult result;
     std::vector<double> enc, dec;
     for (int i = 0; i < TIMING_REPEATS; i++) {
-      enc.push_back(chrono_encrypt(p, q, s, a, b, n, plainfile1.c_str(), paths.cipher1.c_str()).count());
-      dec.push_back(chrono_decrypt(p, q, s, a, b, n, paths.cipher1.c_str(), paths.roundtrip.c_str()).count());
+      used.c1 = seed;
+      enc.push_back(chrono_encrypt(p, q, used.c1, a, b, n, plainfile1.c_str(), paths.cipher1.c_str(), seed).count());
+      dec.push_back(chrono_decrypt(p, q, used.c1, a, b, n, paths.cipher1.c_str(), paths.roundtrip.c_str()).count());
       if (!files_equal(paths.roundtrip.c_str(), plainfile1.c_str())) {
         throw std::runtime_error("proposed pipeline round-trip mismatch for " + plainfile1);
       }
@@ -136,11 +137,14 @@ namespace tools {
     result.enc_s = median(enc);
     result.dec_s = median(dec);
 
-    ftie::encrypt(p, q, s, a, b, n, plainfile1.c_str(), paths.cipher2.c_str());
+    used.c2 = seed;
+    seed = ftie::encrypt(p, q, used.c2, a, b, n, plainfile1.c_str(), paths.cipher2.c_str());
     fill_pair_metrics(result, paths);
 
-    ftie::encrypt(p, q, s, a, b, n, paths.plain2.c_str(), paths.cipher2.c_str());
+    used.c3 = seed;
+    seed = ftie::encrypt(p, q, used.c3, a, b, n, paths.plain2.c_str(), paths.cipher2.c_str());
     result.avalanche = calculate_avalanche(paths.cipher1.c_str(), paths.cipher2.c_str());
+    used.next = seed;
     return result;
   }
 
@@ -204,16 +208,20 @@ namespace tools {
   const char * const SWEEP_HEADER =
     "prime_bits,acm_a,acm_b,acm_n,"
     "npcr_previous,npcr_ch_previous,uaci_previous,entropy_previous,chi2_previous,avalanche_previous,enc_previous_s,dec_previous_s,"
-    "npcr_proposed,npcr_ch_proposed,uaci_proposed,entropy_proposed,chi2_proposed,avalanche_proposed,enc_proposed_s,dec_proposed_s";
+    "npcr_proposed,npcr_ch_proposed,uaci_proposed,entropy_proposed,chi2_proposed,avalanche_proposed,enc_proposed_s,dec_proposed_s,"
+    "seed_c1_proposed,seed_c2_proposed,seed_c3_proposed,seed_next_proposed";
 
   void write_sweep_row(
     std::ostream & out, unsigned int primeBits, uint16_t a, uint16_t b, uint16_t n,
-    const PipelineResult & prev, const PipelineResult & prop
+    const PipelineResult & prev, const PipelineResult & prop, const ProposedSeeds & seeds
   ) {
     out << primeBits << "," << a << "," << b << "," << n;
     for (const PipelineResult * r : { &prev, &prop }) {
       out << "," << r->npcr << "," << r->npcr_ch << "," << r->uaci << "," << r->entropy
           << "," << r->chi2 << "," << r->avalanche << "," << r->enc_s << "," << r->dec_s;
+    }
+    for (const mpz_class * seed : { &seeds.c1, &seeds.c2, &seeds.c3, &seeds.next }) {
+      out << "," << seed->get_str(10);
     }
   }
 
@@ -368,16 +376,17 @@ namespace tools {
     return chi_square_from_histogram(sum, n);
   }
 
-  double npcr_critical_value(uint32_t width, uint32_t height, double z) {
-    double pairs = 1.5 * width * height;
+  double npcr_critical_value(uint32_t width, uint32_t height, double z, bool sharedKeystream) {
+    double samples = (sharedKeystream ? 1.5 : 3.0) * width * height;
     double mu = 255.0 / 256.0;
-    return mu - z * std::sqrt(mu * (1.0 - mu) / pairs);
+    return mu - z * std::sqrt(mu * (1.0 - mu) / samples);
   }
 
-  std::pair<double, double> uaci_critical_range(uint32_t width, uint32_t height, double z) {
-    double pairs = 1.5 * width * height;
+  std::pair<double, double> uaci_critical_range(uint32_t width, uint32_t height, double z, bool sharedKeystream) {
+    double samples = (sharedKeystream ? 1.5 : 3.0) * width * height;
+    double variance = sharedKeystream ? UACI_PAIR_VARIANCE : UACI_BYTE_VARIANCE;
     double mu = 100.0 * 257.0 / 768.0;
-    double half = z * 100.0 * std::sqrt(UACI_PAIR_VARIANCE / pairs);
+    double half = z * 100.0 * std::sqrt(variance / samples);
     return { mu - half, mu + half };
   }
 
@@ -388,10 +397,10 @@ namespace tools {
 
   std::chrono::duration<double> chrono_encrypt(
     mpz_class p, mpz_class q, mpz_class s, uint16_t a, uint16_t b, uint16_t n,
-    const char* plainfileFilepath, const char* cipherimageFilepath
+    const char* plainfileFilepath, const char* cipherimageFilepath, mpz_class & nextSeed
   ) {
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-    ftie::encrypt(p, q, s, a, b, n, plainfileFilepath, cipherimageFilepath);
+    nextSeed = ftie::encrypt(p, q, s, a, b, n, plainfileFilepath, cipherimageFilepath);
     std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
     return finish - start;
   }

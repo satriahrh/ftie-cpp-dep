@@ -13,7 +13,9 @@
 
 
 namespace ftie {
-  void encrypt(
+  // Returns the seed for the next message under the same p, q (the last BBS
+  // state); decrypt must be given the seed s that this message was encrypted with.
+  mpz_class encrypt(
     mpz_class p, mpz_class q, mpz_class s, uint16_t a, uint16_t b, uint16_t n,
     const char* plainfileFilepath, const char* cipherimageFilepath
   );

@@ -39,11 +39,21 @@ namespace tools {
     double enc_s, dec_s, npcr, npcr_ch, uaci, entropy, chi2, avalanche;
   };
 
+  // BBS seed of each proposed-pipeline encryption in one measurement:
+  // c1 = Enc(P1)->C1 (and its Dec), c2 = the second Enc(P1), c3 = Enc(P2);
+  // next = the running seed after c3.
+  struct ProposedSeeds {
+    mpz_class c1, c2, c3, next;
+  };
+
   // Throw std::runtime_error on a round-trip mismatch.
+  // seed is the running seed: every encryption takes the current value and
+  // advances it to the returned next seed, in the order c1, c2, c3 (with
+  // TIMING_REPEATS > 1 each timed repeat takes a step, and c1 is the last).
   PipelineResult measure_proposed(
-    const mpz_class & p, const mpz_class & q, const mpz_class & s,
+    const mpz_class & p, const mpz_class & q, mpz_class & seed,
     uint16_t a, uint16_t b, uint16_t n,
-    const std::string & plainfile1, const ScratchPaths & paths
+    const std::string & plainfile1, const ScratchPaths & paths, ProposedSeeds & used
   );
   PipelineResult measure_previous(
     const std::vector<uint8_t> & keystream,
@@ -63,11 +73,12 @@ namespace tools {
 
   // CSV layout shared by the a-e sweeps: every row carries its full key
   // (prime_bits identifies the bbs_params.csv row holding p, q, s), then
-  // the PipelineResult metrics for the previous and proposed pipelines.
+  // the PipelineResult metrics for the previous and proposed pipelines, then
+  // the proposed pipeline's seeds.
   extern const char * const SWEEP_HEADER;
   void write_sweep_row(
     std::ostream & out, unsigned int primeBits, uint16_t a, uint16_t b, uint16_t n,
-    const PipelineResult & prev, const PipelineResult & prop
+    const PipelineResult & prev, const PipelineResult & prop, const ProposedSeeds & seeds
   );
 
   // Significant digits for every result CSV: entropy's shortfall from 8 is
@@ -121,12 +132,15 @@ namespace tools {
   );
 
   // M3 per-image critical values, parameterized by the cipherimage's
-  // actual width/height rather than a fixed table entry. NPCR and UACI
-  // account for RT's byte pairs: both bytes of a pair change together
-  // between two encryptions, so the 3WH channel bytes are 1.5WH
-  // independent samples (F2 in experiment/METHODOLOGY.md).
-  double npcr_critical_value(uint32_t width, uint32_t height, double z);
-  std::pair<double, double> uaci_critical_range(uint32_t width, uint32_t height, double z);
+  // actual width/height rather than a fixed table entry. sharedKeystream
+  // selects the null for NPCR and UACI (experiment/METHODOLOGY.md §4.8):
+  //   true  (previous pipeline): both encryptions use the same K, so both
+  //         bytes of an RT pair change together and the 3WH channel bytes
+  //         are 1.5WH independent samples;
+  //   false (proposed pipeline): chained seeds give each encryption its own
+  //         K, so the 3WH channel bytes are independent.
+  double npcr_critical_value(uint32_t width, uint32_t height, double z, bool sharedKeystream);
+  std::pair<double, double> uaci_critical_range(uint32_t width, uint32_t height, double z, bool sharedKeystream);
   double entropy_critical_value(uint32_t width, uint32_t height, double chiSquareCritical);
 
   constexpr double Z_ONE_SIDED_ALPHA_05 = 1.645;
@@ -145,6 +159,8 @@ namespace tools {
   // from the same enumeration is 0.0559930 (Wu et al.'s 0.05599); the
   // within-pair correlation is 0.400.
   constexpr double UACI_PAIR_VARIANCE = 0.0391966337;
+  // Single-byte variance of |dC| / 255 from the same enumeration.
+  constexpr double UACI_BYTE_VARIANCE = 0.0559930;
 
   // M2 validity floor: each of 256 bins needs expected count >= 5, i.e.
   // n >= 1280. Not auto-enforced by calculate_chi_square(_bytes); callers
@@ -152,7 +168,7 @@ namespace tools {
   constexpr uint64_t CHI_SQUARE_MIN_SAMPLES = 1280;
   std::chrono::duration<double> chrono_encrypt(
     mpz_class p, mpz_class q, mpz_class s, uint16_t a, uint16_t b, uint16_t n,
-    const char* plainfileFilepath, const char* cipherimageFilepath
+    const char* plainfileFilepath, const char* cipherimageFilepath, mpz_class & nextSeed
   );
 
   std::chrono::duration<double> chrono_decrypt(

@@ -16,7 +16,8 @@ added:
   `f.cpp` runs on real corpus files listed in a manifest (`run_corpus_experiment.sh`, also `manifest.*`,
   `sha256.*`, `build_manifest.sh`). All six measure through the shared
   `tools::measure_proposed`/`measure_previous` (round-trip check, median of `tools::TIMING_REPEATS`
-  timings). Both run scripts append to `experiment/results/env.txt` via `experiment/record_env.sh`.
+  timings); `measure_proposed` carries a running BBS seed through every encryption and every row
+  records the seeds it used (`seed_*_proposed` columns). Both run scripts append to `experiment/results/env.txt` via `experiment/record_env.sh`.
   Methodology, implementation checks and the EC2 procedure: `experiment/METHODOLOGY.md`.
 - `ftie::previous::encrypt`/`decrypt` (in `ftie.h`/`ftie.cpp`) and `ftie::previous::acm::encrypt`/`decrypt`
   (in `acm.h`/`acm.cpp`): a byte-array-based ACM predecessor to the proposed PNG-based ACM, kept for comparison.
@@ -68,7 +69,9 @@ Each experiment binary writes scratch input/output files under `experiment/dum/`
   values — `P`, `Q` are primes congruent to 3 mod 4 (BBS validates this via `ftie::is_prime`, Miller-Rabin at
   40 rounds), sized so `P*Q` is a ~2048-bit modulus (`P`, `Q` each ~1024 bits); `S` is the seed, coprime to
   `P*Q`. Generate a fresh prime with `./bin/ftie-cli genprime <bits>` (prints one decimal prime to stdout;
-  run it twice for distinct `P`/`Q`). `encrypt` and `decrypt` must be called with the same `P`/`Q`/`S`.
+  run it twice for distinct `P`/`Q`). `S` is the seed for this message: `encrypt` prints `Next seed: …`
+  (the last BBS state), which is the `S` for the next message under the same `P`/`Q`, so each message
+  gets its own keystream. `decrypt` must be given the `S` that message was encrypted with.
 - `A`, `B`, `N`: Arnold's Cat Map parameters — `A`, `B` are the map's matrix entries, `N` is the iteration count.
 
 An 8-argument previous-pipeline mode is also supported:
@@ -94,7 +97,8 @@ split across `ftie/` by responsibility:
   write PNG. Decrypt runs this in reverse, ending with `bytes_sequence_stripping` to remove the padding.
 - **`ftie/bbs.{h,cpp}`** — Blum Blum Shub PRNG (`generate_randoms`), operating on GMP `mpz_class` `p`/`q`/`s`
   so the modulus can be ~2048 bits; validates `p`/`q` primality and the `3 mod 4` congruence, and that
-  `gcd(s, p*q) == 1`, before generating the keystream.
+  `gcd(s, p*q) == 1`, before generating the keystream. It also returns the final state x_n through
+  `next_seed`; `ftie::encrypt` returns it as the next message's seed (`ftie::decrypt` ignores it).
 - **`ftie/prime.{h,cpp}`** — `ftie::is_prime` (Miller-Rabin via `mpz_probab_prime_p`, 40 rounds) and
   `ftie::generate_prime_congruent_3_mod_4(bits)`, used by `bbs` to validate `p`/`q` and exposed via the CLI's
   `genprime` subcommand to mint fresh ones.

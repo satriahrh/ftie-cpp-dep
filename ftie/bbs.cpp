@@ -11,7 +11,7 @@
 namespace ftie {
   namespace bbs {
     std::vector<uint8_t> generate_randoms(
-      mpz_class p, mpz_class q, mpz_class s, uint32_t n
+      mpz_class p, mpz_class q, mpz_class s, uint32_t n, mpz_class & next_seed
     ) {
       {
         if (p < q) {
@@ -41,6 +41,7 @@ namespace ftie {
         mpz_class low_byte = x & mpz_class(0xFF);
         kbits_randoms[i] = static_cast<uint8_t>(low_byte.get_ui());
       }
+      next_seed = x;
       return kbits_randoms;
     }
   }

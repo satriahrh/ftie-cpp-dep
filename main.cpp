@@ -70,13 +70,16 @@ int main(int argc, char* argv[]) {
     try {
       std::cout << MODE << "ing " << IN_FILE_PATH << " to " << OUT_FILE_PATH << " . . . " << std::endl;
       auto start = std::chrono::high_resolution_clock::now();
+      mpz_class NEXT_S;
       if (argc == 10)
-        ftie::encrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
+        NEXT_S = ftie::encrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
       else if (argc == 8)
         ftie::previous::encrypt(KEYSTREAM, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
       auto finish = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> elapsed = finish - start;
       std::cout << "Done! Elapsed time: " << elapsed.count() << " seconds" << std::endl;
+      if (argc == 10)
+        std::cout << "Next seed: " << NEXT_S.get_str(10) << std::endl;
       done = true;
     } catch (const char * msg) {
       std::cout << "Oops, there seems to be a problem" << std::endl << "\tERROR: " << msg << std::endl;

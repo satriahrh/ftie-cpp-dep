@@ -126,14 +126,15 @@ std::vector<uint8_t> image_to_bytes_sequence(png::image<png::rgb_pixel> image) {
 }
 
 namespace ftie {
-  void encrypt(
+  mpz_class encrypt(
     mpz_class p, mpz_class q, mpz_class s, uint16_t a, uint16_t b, uint16_t n,
     const char* plainfileFilepath, const char* cipherimageFilepath
   ) {
     std::vector<uint8_t> plainbytes = physical_file_to_bytes_sequence(plainfileFilepath);
     plainbytes = bytes_sequence_padding(plainbytes);
 
-    std::vector<uint8_t> keystream = ftie::bbs::generate_randoms(p, q, s, plainbytes.size());
+    mpz_class next_seed;
+    std::vector<uint8_t> keystream = ftie::bbs::generate_randoms(p, q, s, plainbytes.size(), next_seed);
     std::vector<uint8_t> cipherbytes = ftie::rt::encrypt(plainbytes, keystream);
 
     png::image<png::rgb_pixel> plainimage = bytes_sequence_to_image(cipherbytes);
@@ -141,6 +142,7 @@ namespace ftie {
     png::image<png::rgb_pixel> cipherimage = ftie::acm::encrypt(a, b, n, plainimage);
 
     cipherimage.write(cipherimageFilepath);
+    return next_seed;
   }
 
   void decrypt(
@@ -153,7 +155,9 @@ namespace ftie {
 
     std::vector<uint8_t> cipherbytes = image_to_bytes_sequence(plainimage);
 
-    std::vector<uint8_t> keystream = ftie::bbs::generate_randoms(p, q, s, cipherbytes.size() / 2);
+    // Same x_{n_p} as the encrypt that produced this cipherimage; not needed here.
+    mpz_class next_seed;
+    std::vector<uint8_t> keystream = ftie::bbs::generate_randoms(p, q, s, cipherbytes.size() / 2, next_seed);
     std::vector<uint8_t> plainbytes = ftie::rt::decrypt(cipherbytes, keystream);
 
     plainbytes = bytes_sequence_stripping(plainbytes);

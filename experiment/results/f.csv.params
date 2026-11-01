@@ -7,6 +7,7 @@ acm_b=61719
 acm_n=50
 keystream_bytes=10000000
 keystream_sha256=5358faf3d7b21aa4215b4c856d5fbeec79f6263e499dc56bb66e5d61c219f692
+seed_chain=per-run
 timing_repeats=1
 manifest=experiment/corpus_manifest.csv
 git_commit=cb6c1cfe288975865575660b1d16c448dc8d262c

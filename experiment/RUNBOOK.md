@@ -24,6 +24,9 @@ The run has four phases:
       ("Experiment Environment") meets all of this.
 - [ ] You can SSH in: `ssh -i <key.pem> ubuntu@<public-ip>`.
 - [ ] You know where to get the seven NapierOne *Tiny* archives (§1.3).
+- [ ] You have f's frozen previous-pipeline keystream, `experiment/results/f.csv.keystream` (10 MB,
+      gitignored, so not in the clone). f reuses the key in the committed `f.csv.params`, and refuses to
+      start without the matching keystream (§1.6).
 
 ---
 
@@ -119,13 +122,29 @@ wc -l < experiment/dum/smoke_f.csv         # expect 4 (header + 3)
 
 ---
 
-## 2. Run (≈ 5.6 h, unattended)
+### 1.6 Restore f's frozen key
 
-First remove the pilot's a–e results that come with the repo, so that no experiment is ever skipped
-because an old CSV is present (do this **once**, now):
+f reuses the 2026-10-16 key (BBS row, $a = 40{,}820$, $b = 61{,}719$, $n = 50$, previous-pipeline
+keystream) from the committed `experiment/results/f.csv.params`. Copy the keystream in from your machine
+and check it against the recorded hash:
 
 ```bash
-rm -f experiment/results/[a-e].csv
+# on your machine:
+#   scp -i <key.pem> experiment/results/f.csv.keystream ubuntu@<public-ip>:ftie-cpp-dep/experiment/results/
+sha256sum experiment/results/f.csv.keystream
+grep keystream_sha256 experiment/results/f.csv.params     # the two hashes must match
+```
+
+---
+
+## 2. Run (≈ 5.6 h, unattended)
+
+First remove the previous run's results that come with the repo, so that no experiment is ever skipped
+because an old CSV is present and f starts a fresh `f.csv` (do this **once**, now). Keep
+`f.csv.params` and `f.csv.keystream`: they are f's key.
+
+```bash
+rm -f experiment/results/[a-e].csv experiment/results/f.csv experiment/results/f.stderr.log
 ```
 
 Then, inside the tmux session, start a–e and then f with one command:
@@ -181,7 +200,17 @@ grep -c FAILED $R/f.stderr.log                     # 0 (or only from earlier att
 
 grep -ci ",nan" $R/[a-f].csv                       # 0 for every file
 grep "git_dirty" $R/env.txt | sort | uniq -c      # only git_dirty=no
+
+# seed chain of a-d and f: first row starts at s, every row starts where the previous one ended
+S=$(tail -1 experiment/bbs_params.csv | cut -d, -f4)
+for x in a b c d f; do
+  awk -F, -v s="$S" 'NR==2 && $(NF-3)!=s {bad++} NR>2 && $(NF-3)!=prev {bad++} NR>1 {prev=$NF}
+    END {print FILENAME ": " bad+0 " chain errors"}' $R/$x.csv                          # 0 each
+done
 ```
+
+(e starts each row from its own key's $s$; `experiment/analyze.py` checks that, and repeats the
+check above.)
 
 If f rows < manifest files, look up the `FAILED` lines in `f.stderr.log`, fix the cause, and run
 `./run_corpus_experiment.sh` again; it only processes the missing files.
@@ -253,7 +282,9 @@ Only after the results are pushed (check them on GitHub):
 | `experiment X FAILED` in `run.log` | See `experiment/results/X.stderr.log`; a round-trip mismatch there means a real bug, so stop and investigate. Otherwise rerun `./run_experiments.sh` |
 | `FAILED <file>: size ... != manifest` or `sha256 does not match` | The file on disk differs from the manifest; re-extract the archive or rebuild the manifest (§1.3–1.4) **before** the f run starts — never after f has rows |
 | `exists with a different header` | `experiment/results/f.csv` is from an older harness; move it aside |
-| `does not match keystream_sha256` | `f.csv.keystream` was changed or lost; restore it, or delete `f.csv`, `f.csv.params` and `f.csv.keystream` to restart f from scratch |
+| `does not match keystream_sha256` | `f.csv.keystream` was changed or lost; restore it from your machine (§1.6). Deleting `f.csv`, `f.csv.params` and `f.csv.keystream` would restart f with a **new** key |
+| `ends in an incomplete row` | The run was killed while writing a row; delete that last line of `f.csv` and run again |
+| `first row was not encrypted from s` | `f.csv` and `f.csv.params` come from different runs; restore the matching pair |
 | `no BBS parameters in experiment/bbs_params.csv` | The key file is empty; delete it and rerun (it is regenerated) — only before any results exist |
 | Disk full (`df -h`) | The scratch files in `experiment/dum/` grow to ≈ 4 GB; the corpus archives and extracted files also count. Delete `~/napierone-archives` after extraction if needed |
 | SSH dropped | `tmux attach -t ftie`; the run continues |

@@ -1,5 +1,5 @@
 // make experiment-build-a && make experiment-run-a
-// Experiment a: ACM iteration count n = 10, 20, ..., 300 with a == b (random),
+// Experiment a: ACM iteration count n = 10, 20, ..., 300 with a == b (pinned),
 // which routes the proposed pipeline through the closed-form Fibonacci
 // mapping (mapping_equal).
 // 3.21 MB random plainfile (byte 0 = 0x01; P2 flips bit 1), last bbs_params.csv
@@ -32,15 +32,20 @@ int main() {
 
     std::vector<uint8_t> keystream = tools::random_bytes(10000000);
     const tools::BbsParams bbs = tools::read_bbs_params("experiment/bbs_params.csv").back();
-    const uint16_t a = tools::random_acm_parameter();
+    // Pinned to the value drawn in the 2026-10-16 run, so the re-run differs
+    // from it only by seed chaining (experiment/METHODOLOGY.md §5.1).
+    const uint16_t a = 50175;
     const uint16_t b = a;
 
     std::cout << std::setprecision(tools::CSV_PRECISION);
     std::cout << tools::SWEEP_HEADER << "\n";
+    // One running BBS seed for the whole sweep, starting at the key's s.
+    mpz_class seed = bbs.s;
     for (uint16_t n = 10; n <= 300; n += 10) {
       tools::PipelineResult prev = tools::measure_previous(keystream, a, b, n, plainfile1, paths);
-      tools::PipelineResult prop = tools::measure_proposed(bbs.p, bbs.q, bbs.s, a, b, n, plainfile1, paths);
-      tools::write_sweep_row(std::cout, bbs.bits, a, b, n, prev, prop);
+      tools::ProposedSeeds seeds;
+      tools::PipelineResult prop = tools::measure_proposed(bbs.p, bbs.q, seed, a, b, n, plainfile1, paths, seeds);
+      tools::write_sweep_row(std::cout, bbs.bits, a, b, n, prev, prop, seeds);
       std::cout << std::endl;
     }
   } catch (const std::exception & e) {

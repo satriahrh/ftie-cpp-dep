@@ -17,6 +17,9 @@
 // resumed run never mixes two keys across rows: BBS/ACM parameters in the
 // sidecar "<output-csv>.params", and the previous pipeline's random
 // keystream in "<output-csv>.keystream" (its SHA-256 recorded in .params).
+// The proposed pipeline's running BBS seed starts at the frozen s and is
+// carried through the files in manifest order; every row records the seeds
+// it used and the next one, so a resumed run continues from the last row.
 #include "../experiment/manifest.h"
 #include "../experiment/sha256.h"
 #include "../experiment/tools.h"
@@ -27,6 +30,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <iterator>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -92,24 +96,59 @@ namespace {
     file << "acm_n=" << params.acm_n << "\n";
     file << "keystream_bytes=" << params.keystream_bytes << "\n";
     file << "keystream_sha256=" << params.keystream_sha256 << "\n";
+    file << "seed_chain=per-run" << "\n";
     file << "timing_repeats=" << tools::TIMING_REPEATS << "\n";
     file << "manifest=" << manifestPath << "\n";
   }
 
-  // sha256 is CSV column index 3 (0-based): type,subset,file_name,sha256,...
-  std::set<std::string> load_done_sha256(const std::string & outputCsvPath) {
-    std::set<std::string> done;
-    std::ifstream file(outputCsvPath);
+  std::vector<std::string> split_csv_line(const std::string & line) {
+    std::vector<std::string> fields;
+    std::stringstream ss(line);
+    std::string field;
+    while (std::getline(ss, field, ',')) fields.push_back(field);
+    return fields;
+  }
+
+  std::size_t column_index(const std::vector<std::string> & columns, const std::string & name) {
+    return std::find(columns.begin(), columns.end(), name) - columns.begin();
+  }
+
+  // What a resumed run needs from the rows already written: the finished
+  // files (by sha256) and the seed chain's two ends. Every row must be
+  // complete (all fields, newline-terminated), since a torn last row would
+  // otherwise hand a truncated seed to the next file.
+  struct DoneRows {
+    std::set<std::string> sha256;
+    std::string first_seed_c1, last_seed_next;
+  };
+
+  DoneRows load_done_rows(const std::string & outputCsvPath, const std::string & header) {
+    DoneRows done;
+    std::ifstream file(outputCsvPath, std::ios::in | std::ios::binary);
     if (!file) return done;
 
+    const std::vector<std::string> columns = split_csv_line(header);
+    const std::size_t sha256Col = column_index(columns, "sha256");
+    const std::size_t seedC1Col = column_index(columns, "seed_c1_proposed");
+    const std::size_t seedNextCol = column_index(columns, "seed_next_proposed");
+
+    std::string contents((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    if (!contents.empty() && contents.back() != '\n') {
+      throw std::runtime_error(outputCsvPath + " ends in an incomplete row; remove that last line and re-run");
+    }
+    std::stringstream lines(contents);
     std::string line;
-    std::getline(file, line); // header
-    while (std::getline(file, line)) {
+    std::getline(lines, line); // header
+    while (std::getline(lines, line)) {
       if (line.empty()) continue;
-      std::stringstream ss(line);
-      std::string field;
-      for (int i = 0; i <= 3; i++) std::getline(ss, field, ',');
-      done.insert(field);
+      std::vector<std::string> fields = split_csv_line(line);
+      if (fields.size() != columns.size()) {
+        throw std::runtime_error(outputCsvPath + " has a row with " + std::to_string(fields.size()) +
+          " fields instead of " + std::to_string(columns.size()));
+      }
+      done.sha256.insert(fields[sha256Col]);
+      if (done.first_seed_c1.empty()) done.first_seed_c1 = fields[seedC1Col];
+      done.last_seed_next = fields[seedNextCol];
     }
     return done;
   }
@@ -143,7 +182,9 @@ int main(int argc, char const *argv[]) {
       "entropy_previous,entropy_proposed,chi2_previous,chi2_proposed,"
       "avalanche_previous,avalanche_proposed,"
       "enc_previous_s,dec_previous_s,enc_proposed_s,dec_proposed_s,"
-      "npcr_crit,uaci_crit_low,uaci_crit_high,entropy_crit";
+      "npcr_crit_previous,npcr_crit_proposed,uaci_crit_low_previous,uaci_crit_high_previous,"
+      "uaci_crit_low_proposed,uaci_crit_high_proposed,entropy_crit,"
+      "seed_c1_proposed,seed_c2_proposed,seed_c3_proposed,seed_next_proposed";
 
     // Refuse to resume into a CSV with a different schema -- notably the
     // old synthetic f.cpp's size-sweep f.csv (O7: keep it, don't append
@@ -197,7 +238,18 @@ int main(int argc, char const *argv[]) {
       write_params(paramsPath, params, manifestPath);
     }
 
-    std::set<std::string> done = load_done_sha256(outputCsvPath);
+    DoneRows done = load_done_rows(outputCsvPath, header);
+
+    // Running seed: the frozen s on a fresh run, else the next seed recorded
+    // by the last finished file.
+    mpz_class seed = params.s;
+    if (!done.last_seed_next.empty()) {
+      if (done.first_seed_c1 != params.s.get_str(10)) {
+        throw std::runtime_error(outputCsvPath + "'s first row was not encrypted from s in " + paramsPath +
+          "; the CSV and the params belong to different runs");
+      }
+      seed = mpz_class(done.last_seed_next, 10);
+    }
 
     std::ofstream out(outputCsvPath, std::ios::out | std::ios::app);
     out << std::setprecision(tools::CSV_PRECISION);
@@ -207,7 +259,7 @@ int main(int argc, char const *argv[]) {
     }
 
     for (const tools::CorpusFile & f : manifest) {
-      if (done.count(f.sha256)) {
+      if (done.sha256.count(f.sha256)) {
         std::cerr << "skip (already done): " << f.file_name << " (" << f.sha256 << ")\n";
         continue;
       }
@@ -230,8 +282,13 @@ int main(int argc, char const *argv[]) {
         };
         tools::write_bit1_flipped(plainfile1.c_str(), paths.plain2.c_str());
 
+        // fileSeed advances only into seed once the row is written, so a
+        // FAILED file leaves the chain where the last row ended, as a resumed
+        // run would find it.
+        mpz_class fileSeed = seed;
+        tools::ProposedSeeds seeds;
         tools::PipelineResult prev = tools::measure_previous(keystream, params.acm_a, params.acm_b, params.acm_n, plainfile1, paths);
-        tools::PipelineResult prop = tools::measure_proposed(params.p, params.q, params.s, params.acm_a, params.acm_b, params.acm_n, plainfile1, paths);
+        tools::PipelineResult prop = tools::measure_proposed(params.p, params.q, fileSeed, params.acm_a, params.acm_b, params.acm_n, plainfile1, paths, seeds);
 
         // Both pipelines pad/pack identically for a given plainfile, so
         // cipherimage dimensions are the same either way -- one read
@@ -244,8 +301,10 @@ int main(int argc, char const *argv[]) {
         double entropy_plain = tools::calculate_entropy_bytes(plainfile1.c_str());
         double chi2_plain = tools::calculate_chi_square_bytes(plainfile1.c_str());
 
-        double npcr_crit = tools::npcr_critical_value(width, height, tools::Z_ONE_SIDED_ALPHA_05);
-        std::pair<double, double> uaci_crit = tools::uaci_critical_range(width, height, tools::Z_TWO_SIDED_ALPHA_05);
+        double npcr_crit_prev = tools::npcr_critical_value(width, height, tools::Z_ONE_SIDED_ALPHA_05, true);
+        double npcr_crit_prop = tools::npcr_critical_value(width, height, tools::Z_ONE_SIDED_ALPHA_05, false);
+        std::pair<double, double> uaci_crit_prev = tools::uaci_critical_range(width, height, tools::Z_TWO_SIDED_ALPHA_05, true);
+        std::pair<double, double> uaci_crit_prop = tools::uaci_critical_range(width, height, tools::Z_TWO_SIDED_ALPHA_05, false);
         double entropy_crit = tools::entropy_critical_value(width, height, tools::CHI_SQUARE_CRITICAL_DF255_ALPHA_05);
 
         out << f.type << "," << f.subset << "," << f.file_name << "," << f.sha256 << "," << f.size_bytes << ","
@@ -256,8 +315,13 @@ int main(int argc, char const *argv[]) {
             << prev.entropy << "," << prop.entropy << "," << prev.chi2 << "," << prop.chi2 << ","
             << prev.avalanche << "," << prop.avalanche << ","
             << prev.enc_s << "," << prev.dec_s << "," << prop.enc_s << "," << prop.dec_s << ","
-            << npcr_crit << "," << uaci_crit.first << "," << uaci_crit.second << "," << entropy_crit << "\n";
+            << npcr_crit_prev << "," << npcr_crit_prop << ","
+            << uaci_crit_prev.first << "," << uaci_crit_prev.second << ","
+            << uaci_crit_prop.first << "," << uaci_crit_prop.second << "," << entropy_crit << ","
+            << seeds.c1.get_str(10) << "," << seeds.c2.get_str(10) << ","
+            << seeds.c3.get_str(10) << "," << seeds.next.get_str(10) << "\n";
         out.flush();
+        seed = fileSeed;
 
         std::cerr << "done: " << f.file_name << " (" << f.sha256 << ")\n";
       } catch (const std::exception & e) {

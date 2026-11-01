@@ -11,6 +11,7 @@ repo root:
 Hypotheses (H1-H8) and decisions are those of the analysis plan; the per-file
 critical values are taken from f.csv, not recomputed.
 """
+import functools
 import math
 import sys
 from pathlib import Path
@@ -27,6 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "experiment" / "results"
 OUT = RESULTS / "analysis"
 MANIFEST = ROOT / "experiment" / "corpus_manifest.csv"
+BBS_PARAMS = ROOT / "experiment" / "bbs_params.csv"
 
 ALPHA = 0.05
 TYPE_FALSE_REJECT = 0.01  # per type and metric (section 8.2)
@@ -36,11 +38,21 @@ MIN_SAMPLE_BYTES = 1280  # 5 expected per bin (section 4.2)
 OUTLIER_REL = 0.10  # timing residual flagged only if also > 10% of the fitted time
 CSV_FLOAT = "%.10g"
 
-# METHODOLOGY.md section 4.8: RT pairs, 1.5*W*H independent samples
+# METHODOLOGY.md section 4.8: the null of a re-encryption pair depends on the pipeline. Previous:
+# both encryptions share K, so the two bytes of an RT pair move together (1.5*W*H samples, pair
+# variance). Proposed: chained seeds give each encryption its own K, so the 3*W*H channel bytes
+# are independent (single-byte variance).
 NPCR_MU = 255 / 256
 UACI_MU = 100 * 257 / 768
 UACI_VAR_PAIR = 0.0391966
+UACI_VAR_BYTE = 0.0559930
+SHARED_KEYSTREAM = {"proposed": False, "previous": True}
 AE_N = 1464  # cipherimage side in a-e (3,210,000-byte plainfile)
+
+# Proposed pipeline's BBS seeds per row (METHODOLOGY.md section 3): Enc(P1)->C1, second Enc(P1),
+# Enc(P2), and the running seed after them. ~617-digit integers, so read as strings.
+SEED_COLS = [f"seed_{k}_proposed" for k in ("c1", "c2", "c3", "next")]
+SEED_DTYPES = {col: str for col in SEED_COLS}
 
 # Pipelines, as named in the result columns (<metric>_proposed, <metric>_previous) and every
 # output: proposed = ftie::encrypt, previous = ftie::previous::encrypt.
@@ -88,14 +100,77 @@ def avalanche_pair_variance():
 AVALANCHE_VAR_PAIR = avalanche_pair_variance()  # bits^2 per pair of 16 bits
 
 
-def z_scores(df, pipe, pairs):
+def null_model(pipe, side):
+    """(samples, UACI variance, avalanche SD) of one pipeline's null at cipherimage side N."""
+    if SHARED_KEYSTREAM[pipe]:
+        pairs = 1.5 * side * side
+        return pairs, UACI_VAR_PAIR, np.sqrt(AVALANCHE_VAR_PAIR / 256 / pairs)
+    return 3 * side * side, UACI_VAR_BYTE, 0.5 / np.sqrt(24 * side * side)
+
+
+def npcr_critical(pipe, side):
+    samples, _, _ = null_model(pipe, side)
+    return NPCR_MU - 1.645 * np.sqrt(NPCR_MU * (1 - NPCR_MU) / samples)
+
+
+def uaci_half_range(pipe, side):
+    samples, var, _ = null_model(pipe, side)
+    return 100 * 1.96 * np.sqrt(var / samples)
+
+
+def z_scores(df, pipe, side):
     """Size-free statistics for one pipeline: chi2 p-value and z-scores."""
+    samples, var, aval_sd = null_model(pipe, side)
     out = pd.DataFrame(index=df.index)
     out["chi2_p"] = stats.chi2.sf(df[f"chi2_{pipe}"], CHI2_DF)
-    out["npcr_ch_z"] = (df[f"npcr_ch_{pipe}"] - NPCR_MU) / np.sqrt(NPCR_MU * (1 - NPCR_MU) / pairs)
-    out["uaci_z"] = (df[f"uaci_{pipe}"] - UACI_MU) / (100 * np.sqrt(UACI_VAR_PAIR / pairs))
-    out["avalanche_z"] = (df[f"avalanche_{pipe}"] - 0.5) / np.sqrt(AVALANCHE_VAR_PAIR / 256 / pairs)
+    out["npcr_ch_z"] = (df[f"npcr_ch_{pipe}"] - NPCR_MU) / np.sqrt(NPCR_MU * (1 - NPCR_MU) / samples)
+    out["uaci_z"] = (df[f"uaci_{pipe}"] - UACI_MU) / (100 * np.sqrt(var / samples))
+    out["avalanche_z"] = (df[f"avalanche_{pipe}"] - 0.5) / aval_sd
     return out
+
+
+@functools.lru_cache(maxsize=None)
+def acm_period(a, b, side):
+    """Period of the proposed pipeline's pixel map A = [[1, a], [b, 1 + ab]] mod N."""
+    m00, m01, m10, m11 = 1, a % side, b % side, (1 + a * b) % side
+    x00, x01, x10, x11 = m00, m01, m10, m11
+    k = 1
+    while (x00, x01, x10, x11) != (1, 0, 0, 1):
+        x00, x01, x10, x11 = ((x00 * m00 + x01 * m10) % side, (x00 * m01 + x01 * m11) % side,
+                              (x10 * m00 + x11 * m10) % side, (x10 * m01 + x11 * m11) % side)
+        k += 1
+    return k
+
+
+def acm_identity(a, b, n, side):
+    """(period, whether A^n mod N is the identity) for each row."""
+    period = pd.Series([acm_period(int(x), int(y), int(z)) for x, y, z in zip(a, b, side)], index=a.index)
+    return period, (n % period == 0)
+
+
+def read_params(path):
+    return dict(line.strip().split("=", 1) for line in path.read_text().splitlines() if "=" in line)
+
+
+def check_seed_chain(df, name, start_seed, chained):
+    """Issues with a CSV's seed chain. start_seed: the s each chain starts from (one per row
+    when every row is its own key). chained: each row continues from the previous row's next seed."""
+    issues = []
+    seeds = df[SEED_COLS]
+    if seeds.isna().any().any():
+        return [f"{name}: missing seed values"]
+    if (seeds.nunique(axis=1) != len(SEED_COLS)).any():
+        issues.append(f"{name}: {(seeds.nunique(axis=1) != len(SEED_COLS)).sum()} rows reuse a seed")
+    c1 = df["seed_c1_proposed"]
+    if chained:
+        if c1.iloc[0] != start_seed:
+            issues.append(f"{name}: first row's seed_c1 is not the key's s")
+        broken = (c1.iloc[1:].values != df["seed_next_proposed"].iloc[:-1].values).sum()
+        if broken:
+            issues.append(f"{name}: {broken} rows do not continue from the previous row's next seed")
+    elif (c1 != start_seed).any():
+        issues.append(f"{name}: {(c1 != start_seed).sum()} rows do not start from their key's s")
+    return issues
 
 
 def type_cutoff(n):
@@ -134,14 +209,13 @@ def check_integrity(f):
     if (expected != f["width"]).any():
         issues.append(f"{(expected != f['width']).sum()} rows where width != padding formula")
 
-    pairs = 1.5 * f["width"] * f["height"]
-    npcr_crit = NPCR_MU - 1.645 * np.sqrt(NPCR_MU * (1 - NPCR_MU) / pairs)
-    if not np.allclose(npcr_crit, f["npcr_crit"], rtol=0, atol=1e-8):
-        issues.append("npcr_crit column differs from the section 4.8 formula")
-    half = 100 * 1.96 * np.sqrt(UACI_VAR_PAIR / pairs)
-    if not (np.allclose(UACI_MU - half, f["uaci_crit_low"], atol=1e-6)
-            and np.allclose(UACI_MU + half, f["uaci_crit_high"], atol=1e-6)):
-        issues.append("uaci_crit columns differ from the section 4.8 formula")
+    for pipe in PIPELINES:
+        if not np.allclose(npcr_critical(pipe, f["width"]), f[f"npcr_crit_{pipe}"], rtol=0, atol=1e-8):
+            issues.append(f"npcr_crit_{pipe} column differs from the section 4.8 formula")
+        half = uaci_half_range(pipe, f["width"])
+        if not (np.allclose(UACI_MU - half, f[f"uaci_crit_low_{pipe}"], atol=1e-6)
+                and np.allclose(UACI_MU + half, f[f"uaci_crit_high_{pipe}"], atol=1e-6)):
+            issues.append(f"uaci_crit_*_{pipe} columns differ from the section 4.8 formula")
     entropy_crit = 8 - CHI2_CRIT / (2 * 3 * f["width"] * f["height"] * math.log(2))
     if not np.allclose(entropy_crit, f["entropy_crit"], atol=1e-8):
         issues.append("entropy_crit column differs from the section 4.8 formula")
@@ -153,6 +227,7 @@ def check_integrity(f):
         issues.append(f"f.stderr.log has {len(done)} done lines for {len(f)} rows")
     if other:
         issues.append(f"f.stderr.log has {len(other)} unexpected lines, e.g. {other[0]!r}")
+    issues += check_seed_chain(f, "f.csv", read_params(RESULTS / "f.csv.params")["s"], chained=True)
 
     say(f"f.csv rows: {len(f)}; manifest files: {len(man)}; done lines: {len(done)}")
     say("per type: " + ", ".join(f"{t} {n}" for t, n in f["type"].value_counts()[TYPE_ORDER].items()))
@@ -162,7 +237,8 @@ def check_integrity(f):
             say(f"  - {issue}")
     else:
         say("No issues: every row matches the manifest, sides match the padding formula, "
-            "critical-value columns match section 4.8, log has only done lines.")
+            "critical-value columns match section 4.8, log has only done lines, "
+            "seed chain starts at s and is unbroken.")
     say()
     return issues
 
@@ -194,8 +270,8 @@ def per_file_tests(f, pipe):
     return pd.DataFrame({
         "chi2": f[f"chi2_{pipe}"] > CHI2_CRIT,
         "entropy": f[f"entropy_{pipe}"] < f["entropy_crit"],
-        "npcr_ch": f[f"npcr_ch_{pipe}"] < f["npcr_crit"],
-        "uaci": (f[f"uaci_{pipe}"] < f["uaci_crit_low"]) | (f[f"uaci_{pipe}"] > f["uaci_crit_high"]),
+        "npcr_ch": f[f"npcr_ch_{pipe}"] < f[f"npcr_crit_{pipe}"],
+        "uaci": (f[f"uaci_{pipe}"] < f[f"uaci_crit_low_{pipe}"]) | (f[f"uaci_{pipe}"] > f[f"uaci_crit_high_{pipe}"]),
     }, index=f.index)  # True = file fails
 
 
@@ -337,15 +413,15 @@ def describe(f, keep, plain_keep, zs):
         "uaci_proposed": wide("uaci", "proposed"), "uaci_previous": wide("uaci", "previous"),
         "aval_proposed": wide("avalanche", "proposed"), "aval_previous": wide("avalanche", "previous"),
     }).reset_index())
-    say(f"Avalanche (H3, no pass rule): null SD per pair variance {AVALANCHE_VAR_PAIR:.6f} bits^2 "
-        "(naive 4.0). z-scores per type:")
+    say(f"Avalanche (H3, no pass rule): null SD from 24N^2 independent bits (proposed) and from the "
+        f"RT pair variance {AVALANCHE_VAR_PAIR:.6f} bits^2 (previous; naive 4.0). z-scores per type:")
     av = desc[desc["metric"] == "avalanche_z"]
     table(av.pivot_table(index="type", columns="pipeline",
                          values=["mean", "sd", "abs_z_over_1.96"], aggfunc="first")
           .reindex(TYPE_ORDER + ["ALL"]).reset_index())
 
     say("Any-channel NPCR model check (section 4.3):")
-    for pipe, ideal in [("proposed", 1 - 2 ** -16), ("previous", 1 - 2 ** -24)]:
+    for pipe, ideal in [("proposed", 1 - 2 ** -24), ("previous", 1 - 2 ** -24)]:
         x = f.loc[keep, f"npcr_{pipe}"]
         say(f"  {pipe}: mean {x.mean():.8f}, ideal {ideal:.8f}, min {x.min():.8f}, max {x.max():.8f}")
     say()
@@ -402,17 +478,25 @@ AE = {  # experiment -> (swept column, hypothesis)
 
 def analyse_ae():
     say("== 2. Experiments a-e ==")
-    pairs = 1.5 * AE_N * AE_N
-    npcr_crit = NPCR_MU - 1.645 * math.sqrt(NPCR_MU * (1 - NPCR_MU) / pairs)
-    half = 100 * 1.96 * math.sqrt(UACI_VAR_PAIR / pairs)
     entropy_crit = 8 - CHI2_CRIT / (2 * 3 * AE_N * AE_N * math.log(2))
-    say(f"Thresholds at N={AE_N}: npcr_ch >= {npcr_crit:.6f}, uaci in "
-        f"[{UACI_MU - half:.4f}, {UACI_MU + half:.4f}], entropy >= {entropy_crit:.7f}, chi2 <= {CHI2_CRIT}")
+    npcr_crit = {pipe: npcr_critical(pipe, AE_N) for pipe in PIPELINES}
+    half = {pipe: uaci_half_range(pipe, AE_N) for pipe in PIPELINES}
+    for pipe in PIPELINES:
+        say(f"Thresholds at N={AE_N}, {pipe}: npcr_ch >= {npcr_crit[pipe]:.6f}, uaci in "
+            f"[{UACI_MU - half[pipe]:.4f}, {UACI_MU + half[pipe]:.4f}], entropy >= {entropy_crit:.7f}, "
+            f"chi2 <= {CHI2_CRIT}")
+    bbs_s = pd.read_csv(BBS_PARAMS, dtype={"s": str}).set_index("bits")["s"]
 
-    fit_rows, quality_rows, data = [], [], {}
+    fit_rows, quality_rows, data, issues = [], [], {}, []
     for letter, (xcol, hyp) in AE.items():
-        d = pd.read_csv(RESULTS / f"{letter}.csv")
+        d = pd.read_csv(RESULTS / f"{letter}.csv", dtype=SEED_DTYPES)
         data[letter] = d
+        # every row of e is its own key; a-d run one chain from the last bbs_params row's s
+        if letter == "e":
+            issues += check_seed_chain(d, "e.csv", d["prime_bits"].map(bbs_s), chained=False)
+        else:
+            issues += check_seed_chain(d, f"{letter}.csv", bbs_s[d["prime_bits"].iloc[0]], chained=True)
+        _, identity = acm_identity(d["acm_a"], d["acm_b"], d["acm_n"], pd.Series(AE_N, index=d.index))
         for pipe in PIPELINES:
             for op in ["enc", "dec"]:
                 y = d[f"{op}_{pipe}_s"]
@@ -428,10 +512,11 @@ def analyse_ae():
             fails = {
                 "chi2": int((d[f"chi2_{pipe}"] > CHI2_CRIT).sum()),
                 "entropy": int((d[f"entropy_{pipe}"] < entropy_crit).sum()),
-                "npcr_ch": int((d[f"npcr_ch_{pipe}"] < npcr_crit).sum()),
-                "uaci": int(((d[f"uaci_{pipe}"] < UACI_MU - half) | (d[f"uaci_{pipe}"] > UACI_MU + half)).sum()),
+                "npcr_ch": int((d[f"npcr_ch_{pipe}"] < npcr_crit[pipe]).sum()),
+                "uaci": int(((d[f"uaci_{pipe}"] < UACI_MU - half[pipe])
+                             | (d[f"uaci_{pipe}"] > UACI_MU + half[pipe])).sum()),
             }
-            zs = z_scores(d, pipe, pairs)
+            zs = z_scores(d, pipe, AE_N)
             rho = {met: stats.spearmanr(d[xcol], d[f"{met}_{pipe}"]) for met in
                    ["npcr_ch", "uaci", "chi2", "avalanche"]}
             quality_rows.append({
@@ -444,6 +529,8 @@ def analyse_ae():
                 "avalanche_z_mean": zs["avalanche_z"].mean(), "avalanche_z_sd": zs["avalanche_z"].std(),
                 "chi2_p_ks": stats.kstest(zs["chi2_p"], "uniform").pvalue,
                 **{f"spearman_p_{met}_vs_x": r.pvalue for met, r in rho.items()},
+                # the pixel map is the proposed pipeline's only; previous permutes bytes on another grid
+                "acm_identity_rows": int(identity.sum()) if pipe == "proposed" else np.nan,
             })
 
     fits = pd.DataFrame(fit_rows)
@@ -462,7 +549,13 @@ def analyse_ae():
                    "spearman_p_chi2_vs_x", "spearman_p_avalanche_vs_x"]])
     table(quality[["experiment", "pipeline", "npcr_any_mean", "npcr_ch_mean", "uaci_mean",
                    "entropy_mean", "avalanche_mean", "avalanche_z_mean", "avalanche_z_sd"]])
-    return fits, data
+    prop = quality[quality["pipeline"] == "proposed"]
+    say(f"ACM identity (proposed pixel map, period P(N={AE_N}) divides n): " + ", ".join(
+        f"{r.experiment} {int(r.acm_identity_rows)} of {r.n}" for r in prop.itertuples()))
+    say("Seed chains (a-d one chain from s, e each row from its key's s): "
+        + ("; ".join(issues) if issues else "no issues"))
+    say()
+    return fits, data, issues
 
 
 # --- figures ---------------------------------------------------------------------------------
@@ -653,18 +746,26 @@ def plot_ae(data):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    f = pd.read_csv(RESULTS / "f.csv")
+    f = pd.read_csv(RESULTS / "f.csv", dtype=SEED_DTYPES)
     say("FTIE experiment analysis (experiment/analyze.py)")
     say(f"avalanche null pair variance: {AVALANCHE_VAR_PAIR:.10g} bits^2 per 16-bit pair\n")
 
     issues = check_integrity(f)
     keep, plain_keep = exclusions(f)
-    pairs = 1.5 * f["width"] * f["height"]
-    zs = {pipe: z_scores(f, pipe, pairs) for pipe in PIPELINES}
+    zs = {pipe: z_scores(f, pipe, f["width"]) for pipe in PIPELINES}
     fails = {pipe: per_file_tests(f, pipe) for pipe in PIPELINES}
 
     per_file = f[["type", "subset", "file_name", "sha256", "size_bytes", "width"]].copy()
     per_file["included"] = keep
+    params = read_params(RESULTS / "f.csv.params")
+    per_file["acm_period"], per_file["acm_identity"] = acm_identity(
+        pd.Series(int(params["acm_a"]), index=f.index), pd.Series(int(params["acm_b"]), index=f.index),
+        int(params["acm_n"]), f["width"])
+    identity = per_file[per_file["acm_identity"]]
+    say(f"ACM identity (proposed pixel map, period P(N) divides n = {params['acm_n']}): "
+        f"{len(identity)} of {len(f)} files" + (": " + ", ".join(
+            f"{r.file_name} (N={r.width}, P={r.acm_period})" for r in identity.itertuples())
+            if len(identity) else "") + "\n")
     for pipe in PIPELINES:
         for col in zs[pipe]:
             per_file[f"{col}_{pipe}"] = zs[pipe][col]
@@ -676,7 +777,8 @@ def main():
     uniformity(f, keep, zs)
     describe(f, keep, plain_keep, zs)
     f_fits = timing_fits(f)
-    ae_fits, ae_data = analyse_ae()
+    ae_fits, ae_data, ae_issues = analyse_ae()
+    issues += ae_issues
     write_csv(pd.concat([f_fits, ae_fits], ignore_index=True), "timing_fits.csv")
 
     plot_timing(f, f_fits)
