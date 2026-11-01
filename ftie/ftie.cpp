@@ -160,7 +160,7 @@ namespace ftie {
     bytes_sequence_to_physical_file(plainbytes, plainfileFilepath);
   }
 
-  namespace deprecated {
+  namespace previous {
     void encrypt(
       std::vector<uint8_t> keystream, uint16_t a, uint16_t b, uint16_t n,
       const char* plainfileFilepath, const char* cipherimageFilepath
@@ -170,7 +170,7 @@ namespace ftie {
 
       std::vector<uint8_t> cipherbytes = ftie::rt::encrypt(plainbytes, keystream);
 
-      cipherbytes = ftie::deprecated::acm::encrypt(a, b, n, cipherbytes);
+      cipherbytes = ftie::previous::acm::encrypt(a, b, n, cipherbytes);
 
       png::image<png::rgb_pixel> cipherimage = bytes_sequence_to_image(cipherbytes);
       cipherimage.write(cipherimageFilepath);
@@ -183,7 +183,7 @@ namespace ftie {
       png::image<png::rgb_pixel> cipherimage(cipherimageFilepath);
       std::vector<uint8_t> cipherbytes = image_to_bytes_sequence(cipherimage);
 
-      cipherbytes = ftie::deprecated::acm::decrypt(a, b, n, cipherbytes);
+      cipherbytes = ftie::previous::acm::decrypt(a, b, n, cipherbytes);
 
       std::vector<uint8_t> plainbytes = ftie::rt::decrypt(cipherbytes, keystream);
 

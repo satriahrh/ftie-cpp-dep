@@ -1,6 +1,6 @@
 // make experiment-build-a && make experiment-run-a
 // Experiment a: ACM iteration count n = 10, 20, ..., 300 with a == b (random),
-// which routes the current pipeline through the closed-form Fibonacci
+// which routes the proposed pipeline through the closed-form Fibonacci
 // mapping (mapping_equal).
 // 3.21 MB random plainfile (byte 0 = 0x01; P2 flips bit 1), last bbs_params.csv
 // row unless noted. Prints its own CSV header, then one row per sweep value,
@@ -38,9 +38,9 @@ int main() {
     std::cout << std::setprecision(tools::CSV_PRECISION);
     std::cout << tools::SWEEP_HEADER << "\n";
     for (uint16_t n = 10; n <= 300; n += 10) {
-      tools::PipelineResult dep = tools::measure_deprecated(keystream, a, b, n, plainfile1, paths);
-      tools::PipelineResult cur = tools::measure_current(bbs.p, bbs.q, bbs.s, a, b, n, plainfile1, paths);
-      tools::write_sweep_row(std::cout, bbs.bits, a, b, n, dep, cur);
+      tools::PipelineResult prev = tools::measure_previous(keystream, a, b, n, plainfile1, paths);
+      tools::PipelineResult prop = tools::measure_proposed(bbs.p, bbs.q, bbs.s, a, b, n, plainfile1, paths);
+      tools::write_sweep_row(std::cout, bbs.bits, a, b, n, prev, prop);
       std::cout << std::endl;
     }
   } catch (const std::exception & e) {

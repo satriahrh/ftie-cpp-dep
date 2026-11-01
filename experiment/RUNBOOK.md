@@ -239,8 +239,6 @@ Pushing needs write access to the repo from the instance. Either:
 
 Only after the results are pushed (check them on GitHub):
 
-- Optional: keep the cipherimages for later re-analysis (`experiment/dum/`, ≈ 4 GB) by copying them to
-  S3 or your machine. They are not needed for the paper.
 - Terminate the instance from the EC2 console (or `aws ec2 terminate-instances --instance-ids <id>`).
   The disk is deleted with it.
 

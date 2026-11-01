@@ -1,4 +1,4 @@
-size_mb,npcr_dep,entropy_dep,avalanche_dep,enc_dep_s,dec_dep_s,npcr_cur,entropy_cur,avalanche_cur,enc_cur_s,dec_cur_s
+size_mb,npcr_previous,entropy_previous,avalanche_previous,enc_previous_s,dec_previous_s,npcr_proposed,entropy_proposed,avalanche_proposed,enc_proposed_s,dec_proposed_s
 0.5, 1, 7.99981, 0.498909, 0.724474, 0.245798, 0.999991, 7.99981, 0.499027, 1.2935, 0.811568
 1, 1, 7.99992, 0.499305, 1.596, 0.684242, 0.999975, 7.99991, 0.499326, 2.58131, 1.61398
 1.5, 1, 7.99993, 0.499325, 2.42925, 1.18059, 0.999988, 7.99994, 0.499248, 3.88464, 2.42759

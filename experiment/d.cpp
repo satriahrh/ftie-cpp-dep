@@ -39,9 +39,9 @@ int main() {
     std::cout << tools::SWEEP_HEADER << "\n";
     for (uint16_t a = 1; a <= max; a += inc) {
       const uint16_t b = a + 1;
-      tools::PipelineResult dep = tools::measure_deprecated(keystream, a, b, n, plainfile1, paths);
-      tools::PipelineResult cur = tools::measure_current(bbs.p, bbs.q, bbs.s, a, b, n, plainfile1, paths);
-      tools::write_sweep_row(std::cout, bbs.bits, a, b, n, dep, cur);
+      tools::PipelineResult prev = tools::measure_previous(keystream, a, b, n, plainfile1, paths);
+      tools::PipelineResult prop = tools::measure_proposed(bbs.p, bbs.q, bbs.s, a, b, n, plainfile1, paths);
+      tools::write_sweep_row(std::cout, bbs.bits, a, b, n, prev, prop);
       std::cout << std::endl;
     }
   } catch (const std::exception & e) {

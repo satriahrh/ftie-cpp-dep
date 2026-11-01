@@ -81,7 +81,7 @@ namespace tools {
       return (values[mid - 1] + values[mid]) / 2.0;
     }
 
-    // Shared tail of measure_current/measure_deprecated: cipherimage1 holds
+    // Shared tail of measure_proposed/measure_previous: cipherimage1 holds
     // the last timed Enc(P1), cipherimage2 a second Enc(P1).
     void fill_pair_metrics(PipelineResult & result, const ScratchPaths & paths) {
       result.npcr = calculate_npcr(paths.cipher1.c_str(), paths.cipher2.c_str());
@@ -119,7 +119,7 @@ namespace tools {
     return params;
   }
 
-  PipelineResult measure_current(
+  PipelineResult measure_proposed(
     const mpz_class & p, const mpz_class & q, const mpz_class & s,
     uint16_t a, uint16_t b, uint16_t n,
     const std::string & plainfile1, const ScratchPaths & paths
@@ -130,7 +130,7 @@ namespace tools {
       enc.push_back(chrono_encrypt(p, q, s, a, b, n, plainfile1.c_str(), paths.cipher1.c_str()).count());
       dec.push_back(chrono_decrypt(p, q, s, a, b, n, paths.cipher1.c_str(), paths.roundtrip.c_str()).count());
       if (!files_equal(paths.roundtrip.c_str(), plainfile1.c_str())) {
-        throw std::runtime_error("current pipeline round-trip mismatch for " + plainfile1);
+        throw std::runtime_error("proposed pipeline round-trip mismatch for " + plainfile1);
       }
     }
     result.enc_s = median(enc);
@@ -144,7 +144,7 @@ namespace tools {
     return result;
   }
 
-  PipelineResult measure_deprecated(
+  PipelineResult measure_previous(
     const std::vector<uint8_t> & keystream,
     uint16_t a, uint16_t b, uint16_t n,
     const std::string & plainfile1, const ScratchPaths & paths
@@ -152,19 +152,19 @@ namespace tools {
     PipelineResult result;
     std::vector<double> enc, dec;
     for (int i = 0; i < TIMING_REPEATS; i++) {
-      enc.push_back(chrono_deprecated_encrypt(keystream, a, b, n, plainfile1.c_str(), paths.cipher1.c_str()).count());
-      dec.push_back(chrono_deprecated_decrypt(keystream, a, b, n, paths.cipher1.c_str(), paths.roundtrip.c_str()).count());
+      enc.push_back(chrono_previous_encrypt(keystream, a, b, n, plainfile1.c_str(), paths.cipher1.c_str()).count());
+      dec.push_back(chrono_previous_decrypt(keystream, a, b, n, paths.cipher1.c_str(), paths.roundtrip.c_str()).count());
       if (!files_equal(paths.roundtrip.c_str(), plainfile1.c_str())) {
-        throw std::runtime_error("deprecated pipeline round-trip mismatch for " + plainfile1);
+        throw std::runtime_error("previous pipeline round-trip mismatch for " + plainfile1);
       }
     }
     result.enc_s = median(enc);
     result.dec_s = median(dec);
 
-    ftie::deprecated::encrypt(keystream, a, b, n, plainfile1.c_str(), paths.cipher2.c_str());
+    ftie::previous::encrypt(keystream, a, b, n, plainfile1.c_str(), paths.cipher2.c_str());
     fill_pair_metrics(result, paths);
 
-    ftie::deprecated::encrypt(keystream, a, b, n, paths.plain2.c_str(), paths.cipher2.c_str());
+    ftie::previous::encrypt(keystream, a, b, n, paths.plain2.c_str(), paths.cipher2.c_str());
     result.avalanche = calculate_avalanche(paths.cipher1.c_str(), paths.cipher2.c_str());
     return result;
   }
@@ -203,15 +203,15 @@ namespace tools {
 
   const char * const SWEEP_HEADER =
     "prime_bits,acm_a,acm_b,acm_n,"
-    "npcr_dep,npcr_ch_dep,uaci_dep,entropy_dep,chi2_dep,avalanche_dep,enc_dep_s,dec_dep_s,"
-    "npcr_cur,npcr_ch_cur,uaci_cur,entropy_cur,chi2_cur,avalanche_cur,enc_cur_s,dec_cur_s";
+    "npcr_previous,npcr_ch_previous,uaci_previous,entropy_previous,chi2_previous,avalanche_previous,enc_previous_s,dec_previous_s,"
+    "npcr_proposed,npcr_ch_proposed,uaci_proposed,entropy_proposed,chi2_proposed,avalanche_proposed,enc_proposed_s,dec_proposed_s";
 
   void write_sweep_row(
     std::ostream & out, unsigned int primeBits, uint16_t a, uint16_t b, uint16_t n,
-    const PipelineResult & dep, const PipelineResult & cur
+    const PipelineResult & prev, const PipelineResult & prop
   ) {
     out << primeBits << "," << a << "," << b << "," << n;
-    for (const PipelineResult * r : { &dep, &cur }) {
+    for (const PipelineResult * r : { &prev, &prop }) {
       out << "," << r->npcr << "," << r->npcr_ch << "," << r->uaci << "," << r->entropy
           << "," << r->chi2 << "," << r->avalanche << "," << r->enc_s << "," << r->dec_s;
     }
@@ -406,22 +406,22 @@ namespace tools {
     return finish - start;
   }
 
-  std::chrono::duration<double> chrono_deprecated_encrypt(
+  std::chrono::duration<double> chrono_previous_encrypt(
     const std::vector<uint8_t> & keystream, uint16_t a, uint16_t b, uint16_t n,
     const char* plainfileFilepath, const char* cipherimageFilepath
   ) {
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-    ftie::deprecated::encrypt(keystream, a, b, n, plainfileFilepath, cipherimageFilepath);
+    ftie::previous::encrypt(keystream, a, b, n, plainfileFilepath, cipherimageFilepath);
     std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
     return finish - start;
   }
 
-  std::chrono::duration<double> chrono_deprecated_decrypt(
+  std::chrono::duration<double> chrono_previous_decrypt(
     const std::vector<uint8_t> & keystream, uint16_t a, uint16_t b, uint16_t n,
     const char* cipherimageFilepath, const char* plainfileFilepath
   ) {
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-    ftie::deprecated::decrypt(keystream, a, b, n, cipherimageFilepath, plainfileFilepath);
+    ftie::previous::decrypt(keystream, a, b, n, cipherimageFilepath, plainfileFilepath);
     std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
     return finish - start;
   }

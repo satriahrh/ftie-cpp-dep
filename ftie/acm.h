@@ -19,7 +19,7 @@ namespace ftie {
     );
   }
 
-  namespace deprecated {
+  namespace previous {
     namespace acm {
       std::vector<uint8_t> encrypt(
         uint16_t a, uint16_t b, uint16_t n,

@@ -46,5 +46,8 @@ experiment/results/*
 !experiment/results/f.stderr.log
 !experiment/results/f.archives.sha256
 !experiment/results/env.txt
+# Output of experiment/analyze.py (tables, figures, report).
+!experiment/results/analysis/
 
 bin/*
+.venv/

@@ -22,7 +22,7 @@ namespace ftie {
     const char* cipherimageFilepath, const char* plainfileFilepath
   );
 
-  namespace deprecated {
+  namespace previous {
     void encrypt(
       std::vector<uint8_t> keystream, uint16_t a, uint16_t b, uint16_t n,
       const char* plainfileFilepath, const char* cipherimageFilepath

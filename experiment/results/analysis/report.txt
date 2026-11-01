@@ -1,0 +1,223 @@
+FTIE experiment analysis (experiment/analyze.py)
+avalanche null pair variance: 5.777770996 bits^2 per 16-bit pair
+
+== 0. Data integrity ==
+f.csv rows: 692; manifest files: 692; done lines: 692
+per type: DOCX 100, XLSX 100, PPTX 94, PDF 98, MP3 100, MP4 100, JPG 100
+No issues: every row matches the manifest, sides match the padding formula, critical-value columns match section 4.8, log has only done lines.
+
+Excluded (sample under 1,280 bytes; cipher exclusion also covers NPCR_ch/UACI, whose normal approximation needs the same size):
+type    file_name  size_bytes  cipher_bytes                                 excluded_from
+ JPG 0074-jpg.jpg         302           768 plainfile entropy/chi2; all cipherimage tests
+
+== 1.1-1.2 Per-type decisions (H1 chi2/entropy, H2 npcr_ch/uaci; H5 = proposed vs previous) ==
+Failures per type (cutoffs: n=94 -> 10, n=98 -> 10, n=99 -> 11, n=100 -> 11):
+pipeline    test  DOCX  XLSX  PPTX  PDF  MP3  MP4  JPG   n  failures  binom_p_two_sided
+previous    chi2     4     4     5    6    6    3    7 691        35            0.93033
+previous entropy     4     4     5    6    6    3    7 691        35            0.93033
+previous npcr_ch    10     2     2    5    3    3    8 691        33           0.861497
+previous    uaci     4     3     4    6    3    6    2 691        28           0.294196
+proposed    chi2     7     4     5    7    6    4    1 691        34                  1
+proposed entropy     7     4     5    7    6    4    1 691        34                  1
+proposed npcr_ch     1     6     8    8    8    3    4 691        38           0.540546
+proposed    uaci     2     3     6    5    4    8    5 691        33           0.861497
+
+0 of 56 type-level decisions rejected (about 0.56 false rejects expected at <= 1% each).
+
+== 1.3 Size-free checks (H1, H4): chi2 p ~ U(0,1), z ~ N(0,1) under H0 ==
+KS p-values per type (small p = departs from the null distribution):
+pipeline   statistic     DOCX     XLSX     PPTX      PDF      MP3       MP4        JPG       ALL
+previous avalanche_z 0.376694 0.677617 0.568948 0.351357 0.934239  0.143884   0.528643  0.289257
+previous      chi2_p 0.880681 0.715967 0.612672 0.423861 0.524794  0.161509   0.244147  0.256411
+previous   npcr_ch_z  0.33391 0.690682 0.102282 0.894864 0.373474  0.566581   0.541437  0.386644
+previous      uaci_z 0.123646 0.240659 0.754832 0.360389 0.339266 0.0421417 0.00831795  0.108148
+proposed avalanche_z 0.727259 0.187518 0.710683  0.74097 0.716329  0.523324   0.834246  0.422359
+proposed      chi2_p 0.870524 0.639786 0.421493 0.635382 0.596064  0.846301   0.422927  0.854688
+proposed   npcr_ch_z 0.816179 0.478238  0.29065  0.96111 0.268753  0.683089   0.367434  0.177199
+proposed      uaci_z 0.321945  0.21124 0.363125  0.81117 0.542329 0.0441435   0.526245 0.0436902
+
+Pooled mean/SD of each statistic (null: chi2_p 0.5/0.289, z 0/1):
+pipeline   statistic   n        mean       sd
+proposed      chi2_p 691    0.492418 0.290327
+proposed   npcr_ch_z 691  -0.0358832  1.03405
+proposed      uaci_z 691   0.0692777   1.0052
+proposed avalanche_z 691   0.0381798  1.00333
+previous      chi2_p 691     0.50348 0.292196
+previous   npcr_ch_z 691   0.0303402  1.00377
+previous      uaci_z 691   -0.049713  1.00188
+previous avalanche_z 691 -0.00960099 0.937631
+
+Type effect and plainfile-entropy effect:
+pipeline   statistic                        test   n        stat         p
+proposed      chi2_p Kruskal-Wallis across types 691     3.65891  0.722721
+proposed      chi2_p   Spearman vs entropy_plain 691 -0.00995885  0.793846
+proposed   npcr_ch_z Kruskal-Wallis across types 691     2.63867  0.852636
+proposed   npcr_ch_z   Spearman vs entropy_plain 691 -0.00414377  0.913417
+proposed      uaci_z Kruskal-Wallis across types 691      5.6364  0.465126
+proposed      uaci_z   Spearman vs entropy_plain 691   0.0285178  0.454195
+proposed avalanche_z Kruskal-Wallis across types 691     3.25796  0.775844
+proposed avalanche_z   Spearman vs entropy_plain 691   0.0297523  0.434889
+previous      chi2_p Kruskal-Wallis across types 691     3.58601  0.732494
+previous      chi2_p   Spearman vs entropy_plain 691  0.00906023  0.812084
+previous   npcr_ch_z Kruskal-Wallis across types 691     2.64575  0.851813
+previous   npcr_ch_z   Spearman vs entropy_plain 691  -0.0282233  0.458871
+previous      uaci_z Kruskal-Wallis across types 691      13.255 0.0391609
+previous      uaci_z   Spearman vs entropy_plain 691   0.0182458  0.632083
+previous avalanche_z Kruskal-Wallis across types 691     2.71734  0.843395
+previous avalanche_z   Spearman vs entropy_plain 691  -0.0524606  0.168365
+
+80 tests in this section; at alpha 0.05 about 4.0 small p-values are expected by chance.
+
+== 1.4-1.7 Descriptive statistics (O4), plainfile vs cipher (H4), avalanche (H3) ==
+Plainfile vs cipherimage, per type (mean):
+type  size_KB  entropy_plain  entropy_proposed  entropy_previous  chi2_plain  chi2_proposed  chi2_previous
+DOCX  378.149        7.67329           7.99793           7.99789      231054        255.626        254.644
+XLSX  390.527        7.66245           7.99684           7.99683     64722.1         257.11        255.394
+PPTX  2751.86        7.84274           7.99983           7.99983 1.47043e+06        252.335        253.425
+ PDF  834.683        7.76564            7.9995           7.99949  2.2536e+06         256.42        256.114
+ MP3  868.067        7.90301           7.99989           7.99989      990661         254.36        254.566
+ MP4  1602.36        7.95266           7.99992           7.99992      128537        255.296        252.909
+ JPG  81.9573        7.87816            7.9956            7.9956       32652         257.29        256.961
+ ALL  973.225         7.8109           7.99849           7.99848      729093        255.513        254.865
+
+Files passing chi2 <= 293.25 (alpha 0.05): plain 0 of 691, proposed 657 of 691, previous 656 of 691
+  chi2_plain: min 684.783, max 8.33432e+07
+  chi2_proposed: min 180.129, max 326.271
+  chi2_previous: min 192.525, max 346.153
+
+Differential metrics per type (mean; NPCR_ch/avalanche as fraction, UACI in %):
+type  npcr_ch_proposed  npcr_ch_previous  uaci_proposed  uaci_previous  aval_proposed  aval_previous
+DOCX          0.996109          0.996089        33.4556        33.4534       0.499932       0.499987
+XLSX          0.996082          0.996133        33.4782        33.4714       0.500176       0.500016
+PPTX          0.996079          0.996097        33.4603        33.4624       0.500004        0.50001
+ PDF          0.996083          0.996108        33.4614        33.4655       0.499981       0.499986
+ MP3          0.996087          0.996091        33.4642        33.4652       0.500008       0.499994
+ MP4          0.996097          0.996097        33.4671        33.4632       0.500017       0.500006
+ JPG          0.996082          0.996148          33.47        33.4343       0.499984       0.499864
+ ALL          0.996088          0.996109        33.4653        33.4593       0.500015        0.49998
+
+Avalanche (H3, no pass rule): null SD per pair variance 5.777771 bits^2 (naive 4.0). z-scores per type:
+type abs_z_over_1.96                 mean                  sd         
+            previous proposed    previous   proposed previous proposed
+DOCX               3        6  -0.0240044 -0.0411791  0.84721  1.07728
+XLSX               5        7   0.0162937   0.192677 0.947999  1.02737
+PPTX               4        5   0.0745127  0.0318377 0.960344 0.974768
+ PDF               3        5    -0.08319 -0.0619205  1.01633  1.03202
+ MP3               4        5  -0.0313606  0.0413502 0.968271 0.975707
+ MP4               4        4   0.0500851  0.0771708 0.808068  0.96676
+ JPG               4        2  -0.0665378  0.0248068  1.01594 0.972039
+ ALL              27       34 -0.00960099  0.0381798 0.937631  1.00333
+
+Any-channel NPCR model check (section 4.3):
+  proposed: mean 0.99998515, ideal 0.99998474, min 0.99980710, max 1.00000000
+  previous: mean 0.99999984, ideal 0.99999994, min 0.99995556, max 1.00000000
+
+== 1.8 Timing vs size (H6) ==
+pipeline  op   n    slope    slope_se   intercept  intercept_se       r2  outliers
+proposed enc 692  2.59923 0.000468574 0.000942256   0.000817139 0.999978         0
+proposed dec 692  1.59237 0.000366742  0.00215052   0.000639556 0.999963         0
+previous enc 692  1.75268  0.00350426  -0.0809602    0.00611103 0.997249         4
+previous dec 692 0.930367  0.00645881   -0.111796     0.0112634 0.967816        31
+
+Fixed cost, three smallest files (s): 0074-jpg.jpg 302 B: enc proposed 0.0118 / previous 0.0034; 0001-jpg.jpg 2878 B: enc proposed 0.0182 / previous 0.0081; 0066-jpg.jpg 3095 B: enc proposed 0.0189 / previous 0.0071
+Residual outliers (|residual| > 4 robust SD and > 10% of fitted):
+  previous enc: 0091-pptx.pptx (7.69 MB, 11.21 s, fitted 13.40 s)
+  previous enc: 0002-pdf.pdf (2.30 MB, 3.44 s, fitted 3.95 s)
+  previous enc: 0006-pdf.pdf (1.77 MB, 2.64 s, fitted 3.03 s)
+  previous enc: 0034-mp4-from-web.mp4 (2.08 MB, 3.00 s, fitted 3.56 s)
+  previous dec: 0037-docx.docx (4.07 MB, 4.18 s, fitted 3.67 s)
+  previous dec: 0063-docx.docx (5.16 MB, 5.25 s, fitted 4.69 s)
+  previous dec: 0082-xlsx.xlsx (5.68 MB, 5.69 s, fitted 5.17 s)
+  previous dec: 0008-pptx.pptx (9.25 MB, 9.58 s, fitted 8.50 s)
+  previous dec: 0019-pptx.pptx (3.55 MB, 3.68 s, fitted 3.19 s)
+  previous dec: 0022-pptx.pptx (3.92 MB, 3.99 s, fitted 3.54 s)
+  previous dec: 0039-pptx.pptx (3.98 MB, 2.64 s, fitted 3.59 s)
+  previous dec: 0048-pptx.pptx (2.95 MB, 3.10 s, fitted 2.64 s)
+  previous dec: 0063-pptx.pptx (9.28 MB, 9.49 s, fitted 8.52 s)
+  previous dec: 0074-pptx.pptx (2.85 MB, 2.99 s, fitted 2.54 s)
+  previous dec: 0079-pptx.pptx (4.35 MB, 4.50 s, fitted 3.94 s)
+  previous dec: 0082-pptx.pptx (4.37 MB, 4.39 s, fitted 3.95 s)
+  previous dec: 0091-pptx.pptx (7.69 MB, 3.01 s, fitted 7.04 s)
+  previous dec: 0098-pptx.pptx (7.57 MB, 5.99 s, fitted 6.93 s)
+  previous dec: 0099-pptx.pptx (2.83 MB, 2.96 s, fitted 2.52 s)
+  previous dec: 0100-pptx.pptx (3.44 MB, 2.45 s, fitted 3.09 s)
+  previous dec: 0002-pdf.pdf (2.30 MB, 1.15 s, fitted 2.03 s)
+  previous dec: 0005-pdf.pdf (3.34 MB, 3.50 s, fitted 2.99 s)
+  previous dec: 0006-pdf.pdf (1.77 MB, 0.86 s, fitted 1.54 s)
+  previous dec: 0036-pdf.pdf (1.23 MB, 0.48 s, fitted 1.03 s)
+  previous dec: 0037-pdf.pdf (3.31 MB, 3.47 s, fitted 2.96 s)
+  previous dec: 0051-pdf.pdf (3.60 MB, 3.78 s, fitted 3.24 s)
+  previous dec: 0057-pdf.pdf (2.37 MB, 1.60 s, fitted 2.09 s)
+  previous dec: 0067-pdf.pdf (5.58 MB, 4.21 s, fitted 5.08 s)
+  previous dec: 0007-mp4-from-web.mp4 (3.77 MB, 3.91 s, fitted 3.40 s)
+  previous dec: 0033-mp4-from-web.mp4 (3.75 MB, 3.83 s, fitted 3.37 s)
+  previous dec: 0034-mp4-from-web.mp4 (2.08 MB, 0.80 s, fitted 1.82 s)
+  previous dec: 0038-mp4-from-web.mp4 (2.69 MB, 2.84 s, fitted 2.39 s)
+  previous dec: 0041-mp4-from-web.mp4 (1.45 MB, 0.69 s, fitted 1.23 s)
+  previous dec: 0080-mp4-from-web.mp4 (2.70 MB, 2.84 s, fitted 2.40 s)
+  previous dec: 0082-mp4-from-web.mp4 (3.35 MB, 2.47 s, fitted 3.00 s)
+
+== 2. Experiments a-e ==
+Thresholds at N=1464: npcr_ch >= 0.996037, uaci in [33.4419, 33.4852], entropy >= 7.9999671, chi2 <= 293.25
+
+Timing fits (H8); fitted_change_pct = fitted change over the sweep / mean time:
+a (acm_n) - H8a: previous grows linearly with n, proposed flat
+pipeline  op        slope    slope_se        r2  r2_quadratic     p_slope    min_s   max_s  fitted_change_pct
+proposed enc -4.59523e-05 6.66757e-05 0.0166808     0.0167464    0.496374  8.23942 8.31589          -0.160781
+proposed dec -3.71457e-05 5.77195e-05 0.0145759     0.0146335    0.525101  5.01883 5.08541           -0.21283
+previous enc    0.0423788 5.02058e-05  0.999961      0.999961 3.12895e-63  3.83923 16.1044            123.089
+previous dec    0.0523294 0.000350328  0.998747      0.998779 3.52969e-42 0.714734 15.8763             182.38
+
+b (acm_n) - H8a: previous grows linearly with n, proposed flat
+pipeline  op        slope    slope_se         r2  r2_quadratic     p_slope    min_s   max_s  fitted_change_pct
+proposed enc -3.91374e-06 7.69116e-06 0.00916313     0.0144547    0.614836  8.25657 8.27098          -0.013732
+proposed dec  -2.2127e-06 4.37547e-06 0.00905084     0.0665761    0.617022  5.03447 5.04418         -0.0127308
+previous enc    0.0423911 2.97465e-05   0.999986      0.999986 1.34007e-69  3.83796 16.1561            123.156
+previous dec    0.0634406  5.4623e-05   0.999979      0.999981 4.11917e-67 0.830181 19.1641            183.331
+
+c (acm_a) - H8b: flat in a
+pipeline  op       slope    slope_se        r2  r2_quadratic  p_slope   min_s   max_s  fitted_change_pct
+proposed enc 2.06546e-07 1.28045e-07 0.0850268     0.0854274 0.117945 8.27488 8.33203           0.157564
+proposed dec 1.25841e-07 1.31626e-07 0.0316118     0.0364141 0.347231 5.03645 5.08749           0.157094
+previous enc  2.4899e-06  1.5156e-06 0.0879162     0.0990127   0.1116 4.73547 5.55404            2.88849
+previous dec 4.85387e-06 2.90268e-06 0.0907985     0.0914687 0.105625 1.45919 2.87669             11.616
+
+d (acm_a) - H8b: flat in a
+pipeline  op       slope    slope_se        r2  r2_quadratic  p_slope   min_s   max_s  fitted_change_pct
+proposed enc 8.92555e-08 1.11062e-07 0.0225464     0.0407842 0.428367 8.28455  8.3332          0.0679276
+proposed dec 2.55846e-07 1.53684e-07 0.0900649     0.0969185 0.107113 5.04167 5.12662           0.318179
+previous enc  2.7856e-06 1.43339e-06  0.118851      0.135963 0.062086 4.73591 5.55762            3.23088
+previous dec 6.67512e-06 4.37726e-06 0.0766841     0.0850582 0.138488 1.53296  3.4467            13.6477
+
+e (prime_bits) - H8c: proposed grows with modulus size, previous flat
+pipeline  op        slope    slope_se         r2  r2_quadratic     p_slope    min_s   max_s  fitted_change_pct
+proposed enc   0.00439145 0.000168695   0.960321      0.997591 3.65254e-21  4.16875 8.38374             75.784
+proposed dec   0.00439201 0.000167644   0.960804      0.997623 3.07574e-21 0.940379 5.15389            169.383
+previous enc  1.26613e-06  5.7582e-06 0.00172376    0.00375037    0.827558  5.08561 5.12026           0.025025
+previous dec -2.55588e-06 1.17684e-06   0.144171      0.227719   0.0384943  1.88423 1.89158          -0.136439
+
+Quality (H7): failures out of 30 rows at alpha 0.05 (about 1.5 expected per test), and Spearman p of metric vs swept variable (small p = metric moves with the parameter):
+experiment pipeline  fail_chi2  fail_entropy  fail_npcr_ch  fail_uaci  chi2_p_ks  spearman_p_npcr_ch_vs_x  spearman_p_uaci_vs_x  spearman_p_chi2_vs_x  spearman_p_avalanche_vs_x
+         a proposed          1             1             2          1   0.280241                 0.310478             0.0333515              0.192044                   0.749868
+         a previous          3             3             2          1   0.114379                 0.165059              0.690311              0.620861                   0.270019
+         b proposed          1             1             2          2   0.438078                 0.723395              0.449365              0.314035                   0.673116
+         b previous          0             0             3          2   0.976434                 0.710243               0.64594              0.309443                   0.625845
+         c proposed          1             1             0          1   0.205981                 0.784675              0.827215              0.249592                   0.818125
+         c previous          2             2             2          3  0.0611147                 0.924701              0.450787              0.774829                    0.43948
+         d proposed          1             1             2          2   0.574473                 0.431102              0.836328              0.252589                   0.904333
+         d previous          1             1             0          2 0.00478555                 0.405775              0.937688              0.453638                   0.414611
+         e proposed          0             0             1          0  0.0532355                  0.51567              0.063288              0.194554                   0.721641
+         e previous          0             0             0          2   0.630182                 0.679975              0.183839              0.261722                   0.479723
+
+experiment pipeline  npcr_any_mean  npcr_ch_mean  uaci_mean  entropy_mean  avalanche_mean  avalanche_z_mean  avalanche_z_sd
+         a proposed       0.999984      0.996094     33.463       7.99997        0.500021          0.249929         1.08578
+         a previous              1       0.99609    33.4635       7.99997        0.500003         0.0345716        0.967438
+         b proposed       0.999985      0.996097    33.4632       7.99997        0.499979         -0.254763         1.05955
+         b previous              1      0.996086     33.459       7.99997        0.500025           0.29389        0.985922
+         c proposed       0.999984      0.996109    33.4639       7.99997        0.499976         -0.282621        0.840176
+         c previous              1      0.996093    33.4621       7.99997        0.500024          0.292026          1.0404
+         d proposed       0.999985      0.996091    33.4611       7.99997        0.499995        -0.0539455        0.909494
+         d previous              1      0.996095    33.4634       7.99997        0.500016          0.185124        0.945204
+         e proposed       0.999985      0.996093    33.4639       7.99997        0.499972         -0.329211        0.786766
+         e previous              1      0.996093    33.4637       7.99997        0.499995        -0.0608367        0.879131
+

@@ -1,7 +1,7 @@
 // make experiment-build-e && make experiment-run-e
 // Experiment e: BBS key size: every row of bbs_params.csv (prime sizes 16 to
 // 1024 bits, modulus ~32 to ~2048 bits), with random a, b and n = 50. The
-// deprecated pipeline does not use BBS and serves as a control.
+// previous pipeline does not use BBS and serves as a control.
 // 3.21 MB random plainfile (byte 0 = 0x01; P2 flips bit 1), last bbs_params.csv
 // row unless noted. Prints its own CSV header, then one row per sweep value,
 // to stdout; run_experiments.sh captures it. See experiment/METHODOLOGY.md §5.
@@ -30,7 +30,7 @@ int main() {
     tools::write_bytes(plainfile1, plainbytes);
     tools::write_bit1_flipped(plainfile1.c_str(), paths.plain2.c_str());
 
-    // Deprecated keystream sized to the plainfile, as in the pilot.
+    // Previous-pipeline keystream sized to the plainfile, as in the pilot.
     std::vector<uint8_t> keystream = tools::random_bytes(plainbytes.size());
     const std::vector<tools::BbsParams> bbsRows = tools::read_bbs_params("experiment/bbs_params.csv");
     const uint16_t a = tools::random_acm_parameter();
@@ -40,9 +40,9 @@ int main() {
     std::cout << std::setprecision(tools::CSV_PRECISION);
     std::cout << tools::SWEEP_HEADER << ",modulus\n";
     for (const tools::BbsParams & bbs : bbsRows) {
-      tools::PipelineResult dep = tools::measure_deprecated(keystream, a, b, n, plainfile1, paths);
-      tools::PipelineResult cur = tools::measure_current(bbs.p, bbs.q, bbs.s, a, b, n, plainfile1, paths);
-      tools::write_sweep_row(std::cout, bbs.bits, a, b, n, dep, cur);
+      tools::PipelineResult prev = tools::measure_previous(keystream, a, b, n, plainfile1, paths);
+      tools::PipelineResult prop = tools::measure_proposed(bbs.p, bbs.q, bbs.s, a, b, n, plainfile1, paths);
+      tools::write_sweep_row(std::cout, bbs.bits, a, b, n, prev, prop);
       mpz_class m = bbs.p * bbs.q;
       std::cout << "," << m.get_str(10) << std::endl;
     }

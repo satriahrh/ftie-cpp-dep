@@ -10,17 +10,17 @@ added:
 
 - A `Makefile` with `experiment-build-*` / `experiment-run-*` targets.
 - An `experiment/` directory (`a.cpp`..`f.cpp`, `tools.h`/`tools.cpp`) containing standalone comparison
-  harnesses that benchmark the current image-based pipeline against the deprecated byte-array pipeline
+  harnesses that benchmark the proposed image-based pipeline against the previous byte-array pipeline
   (NPCR, UACI, entropy, χ², avalanche effect, timing). `a.cpp`..`e.cpp` sweep one parameter over random
   plaintext (`run_experiments.sh`; each binary prints its own CSV header, and every row carries its key);
   `f.cpp` runs on real corpus files listed in a manifest (`run_corpus_experiment.sh`, also `manifest.*`,
   `sha256.*`, `build_manifest.sh`). All six measure through the shared
-  `tools::measure_current`/`measure_deprecated` (round-trip check, median of `tools::TIMING_REPEATS`
+  `tools::measure_proposed`/`measure_previous` (round-trip check, median of `tools::TIMING_REPEATS`
   timings). Both run scripts append to `experiment/results/env.txt` via `experiment/record_env.sh`.
-  Methodology, review findings and the EC2 procedure: `experiment/METHODOLOGY.md`.
-- `ftie::deprecated::encrypt`/`decrypt` (in `ftie.h`/`ftie.cpp`) and `ftie::deprecated::acm::encrypt`/`decrypt`
-  (in `acm.h`/`acm.cpp`): a byte-array-based ACM predecessor to the current PNG-based ACM, kept for comparison.
-- `main.cpp` accepts an alternate 8-argument invocation that dispatches to the deprecated pipeline (see below).
+  Methodology, implementation checks and the EC2 procedure: `experiment/METHODOLOGY.md`.
+- `ftie::previous::encrypt`/`decrypt` (in `ftie.h`/`ftie.cpp`) and `ftie::previous::acm::encrypt`/`decrypt`
+  (in `acm.h`/`acm.cpp`): a byte-array-based ACM predecessor to the proposed PNG-based ACM, kept for comparison.
+- `main.cpp` accepts an alternate 8-argument invocation that dispatches to the previous pipeline (see below).
 
 ## Build
 
@@ -71,11 +71,11 @@ Each experiment binary writes scratch input/output files under `experiment/dum/`
   run it twice for distinct `P`/`Q`). `encrypt` and `decrypt` must be called with the same `P`/`Q`/`S`.
 - `A`, `B`, `N`: Arnold's Cat Map parameters — `A`, `B` are the map's matrix entries, `N` is the iteration count.
 
-An 8-argument deprecated mode is also supported:
+An 8-argument previous-pipeline mode is also supported:
 ```
 ./bin/ftie-cli <encrypt|decrypt> <in-path> <out-path> <keystream-string> A B N
 ```
-which routes to `ftie::deprecated::encrypt`/`decrypt` instead, using a literal keystream string in place of BBS.
+which routes to `ftie::previous::encrypt`/`decrypt` instead, using a literal keystream string in place of BBS.
 
 There is no unit test suite. Correctness/quality is instead checked empirically via the `experiment/`
 harnesses (NPCR, entropy, avalanche effect) described above.
@@ -105,8 +105,8 @@ split across `ftie/` by responsibility:
 - **`ftie/acm.{h,cpp}`** — Arnold's Cat Map pixel permutation over a square `png::image`. Uses a closed-form
   Fibonacci-based mapping (`mapping_equal`) when `a == b`, otherwise modular matrix exponentiation
   (`mapping_general`); `get_map` picks between them. On `experiment`, also defines
-  `ftie::deprecated::acm::encrypt`/`decrypt`, the predecessor ACM operating directly on `vector<uint8_t>`
-  (no image packing), used only by the deprecated pipeline.
+  `ftie::previous::acm::encrypt`/`decrypt`, the predecessor ACM operating directly on `vector<uint8_t>`
+  (no image packing), used only by the previous pipeline.
 
 When editing the pipeline, keep in mind the byte-count arithmetic in `ftie.cpp`'s padding/stripping and
 `bytes_sequence_to_image`/`image_to_bytes_sequence` in sync — the padding size is derived from the same

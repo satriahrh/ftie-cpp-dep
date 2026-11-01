@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
       if (argc == 10)
         ftie::encrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
       else if (argc == 8)
-        ftie::deprecated::encrypt(KEYSTREAM, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
+        ftie::previous::encrypt(KEYSTREAM, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
       auto finish = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> elapsed = finish - start;
       std::cout << "Done! Elapsed time: " << elapsed.count() << " seconds" << std::endl;
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
       if (argc == 10)
         ftie::decrypt(P, Q, S, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
       else if (argc == 8)
-        ftie::deprecated::decrypt(KEYSTREAM, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
+        ftie::previous::decrypt(KEYSTREAM, A, B, N, IN_FILE_PATH, OUT_FILE_PATH);
       auto finish = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> elapsed = finish - start;
       std::cout << "Done! Elapsed time: " << elapsed.count() << " seconds"<< std::endl;

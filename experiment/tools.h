@@ -40,12 +40,12 @@ namespace tools {
   };
 
   // Throw std::runtime_error on a round-trip mismatch.
-  PipelineResult measure_current(
+  PipelineResult measure_proposed(
     const mpz_class & p, const mpz_class & q, const mpz_class & s,
     uint16_t a, uint16_t b, uint16_t n,
     const std::string & plainfile1, const ScratchPaths & paths
   );
-  PipelineResult measure_deprecated(
+  PipelineResult measure_previous(
     const std::vector<uint8_t> & keystream,
     uint16_t a, uint16_t b, uint16_t n,
     const std::string & plainfile1, const ScratchPaths & paths
@@ -63,11 +63,11 @@ namespace tools {
 
   // CSV layout shared by the a-e sweeps: every row carries its full key
   // (prime_bits identifies the bbs_params.csv row holding p, q, s), then
-  // the PipelineResult metrics for the deprecated and current pipelines.
+  // the PipelineResult metrics for the previous and proposed pipelines.
   extern const char * const SWEEP_HEADER;
   void write_sweep_row(
     std::ostream & out, unsigned int primeBits, uint16_t a, uint16_t b, uint16_t n,
-    const PipelineResult & dep, const PipelineResult & cur
+    const PipelineResult & prev, const PipelineResult & prop
   );
 
   // Significant digits for every result CSV: entropy's shortfall from 8 is
@@ -160,12 +160,12 @@ namespace tools {
     const char* cipherimageFilepath, const char* plainfileFilepath
   );
 
-  std::chrono::duration<double> chrono_deprecated_encrypt(
+  std::chrono::duration<double> chrono_previous_encrypt(
     const std::vector<uint8_t> & keystream, uint16_t a, uint16_t b, uint16_t n,
     const char* plainfileFilepath, const char* cipherimageFilepath
   );
 
-  std::chrono::duration<double> chrono_deprecated_decrypt(
+  std::chrono::duration<double> chrono_previous_decrypt(
     const std::vector<uint8_t> & keystream, uint16_t a, uint16_t b, uint16_t n,
     const char* cipherimageFilepath, const char* plainfileFilepath
   );

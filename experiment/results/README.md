@@ -1,92 +1,65 @@
 # Experiment results
 
-> **Pilot run (2026-08-30).** The CSVs described below are the pilot, produced by the code before
-> the fixes in `experiment/METHODOLOGY.md` §10. The planned re-run replaces `a.csv`–`e.csv` with a
-> new schema (`prime_bits, acm_a, acm_b, acm_n`, then `npcr, npcr_ch, uaci, entropy, chi2,
-> avalanche, enc_s, dec_s` per pipeline; e adds `modulus`) and adds `f.csv` (corpus), `env.txt` and
-> the committed `experiment/bbs_params.csv`. See `experiment/METHODOLOGY.md` §8 for the current
-> layout; this file documents the pilot only.
+Results of the 2026-10-16 run of experiments a–e and corpus f (EC2 c7i.large, clean commit
+`cb6c1cf`, results committed in `25c9e8a`), and their analysis. What each experiment measures, the
+metrics and thresholds, and the results with their reading are in
+[`experiment/METHODOLOGY.md`](../METHODOLOGY.md): §5 (a–e), §6 (f), §7 (file layout and columns),
+§8.4 (results).
 
-Each experiment (`experiment/{a,b,c,d,e,f}.cpp`) runs the **current** image-based FTIE
-pipeline (`ftie::encrypt`/`decrypt`, BBS keystream + RT + PNG packing + ACM permutation)
-side by side with the **deprecated** byte-array pipeline
-(`ftie::deprecated::encrypt`/`decrypt`, literal keystream + RT + ACM, no PNG packing) over
-a sweep of one parameter, holding the others fixed. Every row in `a.csv`..`e.csv` (and
-`f_size_sweep.csv`) is one point in that sweep. `build.log`/`run.log`/`gen-params.log` are the build/run logs from the
-`make experiment-*` targets; `*.stderr.log` capture stderr for each binary.
+Every experiment runs two pipelines on the same input: the **proposed** pipeline (BBS keystream, RT,
+PNG packing, pixel-level ACM) and the **previous** pipeline (literal keystream, RT, byte-level ACM,
+then PNG packing). Their result columns end in `_proposed` and `_previous`.
 
-## Shared methodology
+## Raw results
 
-For each sweep point, both pipelines encrypt the same plaintext twice and decrypt once:
+| File | Content |
+| --- | --- |
+| `a.csv` … `e.csv` | One row per sweep value (30 each): `prime_bits, acm_a, acm_b, acm_n`, then per pipeline `npcr, npcr_ch, uaci, entropy, chi2, avalanche, enc_s, dec_s`; e adds `modulus` |
+| `f.csv` | One row per corpus file (692): file identity, cipherimage size, plaintext baseline, the same metrics per pipeline, and per-file critical values |
+| `f.csv.params` | Frozen key of f: BBS row, ACM $a, b, n$, keystream length and SHA-256, manifest path, commit, compiler, date |
+| `f.archives.sha256` | SHA-256 of the seven NapierOne Tiny archives |
+| `env.txt` | Machine and code state, one block per run-script invocation |
+| `run.log`, `build.log`, `gen-params.log`, `*.stderr.log` | Logs of the run (a–e stderr logs are empty; `f.stderr.log` has one `done:` line per file) |
 
-1. Encrypt `plainfile_1` → `cipherimage_1`, then decrypt `cipherimage_1` back over
-   `plainfile_1` (round-trip correctness + timing).
-2. Encrypt `plainfile_1` again → `cipherimage_2`, then compute **NPCR** between
-   `cipherimage_1` and `cipherimage_2`. Because RT (`ftie/rt.{h,cpp}`) mixes in a fresh
-   `std::random_device` value per byte, re-encrypting *identical* plaintext still yields a
-   visually unrelated ciphertext — so this NPCR is a **non-determinism/diffusion** check
-   (do two encryptions of the same input look uncorrelated?), not the classic
-   one-bit-plaintext-change NPCR. Values close to `1.0` mean "yes, uncorrelated," as seen
-   throughout the CSVs.
-3. **Entropy** is computed on `cipherimage_1`'s pixel byte distribution (max `8.0` bits for
-   a uniform byte distribution — how close the ciphertext is to random noise).
-4. Encrypt `plainfile_2` (identical to `plainfile_1` except its first byte, `0x01` vs
-   `0x03`) → `cipherimage_2`, then compute **avalanche** between `cipherimage_1` and this
-   `cipherimage_2`: the fraction of output bits that flip for a single-byte plaintext
-   change (classic avalanche-effect test; ideal ≈ `0.5`).
+The corpus file list with SHA-256 is `experiment/corpus_manifest.csv`, and the BBS keys of every
+experiment are in `experiment/bbs_params.csv`. `f.csv.keystream` (the previous pipeline's 10 MB
+keystream for f) is gitignored.
 
-CSV columns follow `<metric>_dep` (deprecated pipeline) / `<metric>_cur` (current
-pipeline): `npcr_*`, `entropy_*`, `avalanche_*`, `enc_*_s`/`dec_*_s` (encrypt/decrypt wall
-time, seconds).
+| Experiment | Swept | Fixed |
+| --- | --- | --- |
+| a | ACM iterations $n$ = 10…300, $a = b$ | random $a = b$, 1024-bit BBS |
+| b | ACM iterations $n$ = 10…300, $a \ne b$ | random $a \ne b$, 1024-bit BBS |
+| c | ACM entry $a = b$ = 1…63,337 | $n = 50$, 1024-bit BBS |
+| d | ACM entry $a$ = 1…63,337, $b = a + 1$ | $n = 50$, 1024-bit BBS |
+| e | BBS prime size 16…1024 bits | random $a, b$, $n = 50$ |
+| f | 692 NapierOne files of 7 types, natural sizes up to 10,000,000 B | $a = 40{,}820$, $b = 61{,}719$, $n = 50$, 1024-bit BBS |
 
-BBS parameters (`P`, `Q`, `S`) come from `experiment/bbs_params.csv`, pre-generated by
-`experiment/gen_params.cpp` as 30 `(bits, p, q, s)` rows with prime bit-length stepped from
-16 to 1024 bits (so modulus `P*Q` ranges ~32 to ~2048 bits). Experiments a-d and f pin the
-params to the last (largest, 1024-bit-prime / ~2048-bit-modulus) row; experiment e sweeps
-across all 30 rows.
+a–e encrypt one 3,210,000-byte random plaintext per experiment, so they are evidence about cost
+only (METHODOLOGY §5.3, §5.4). f is the evidence about quality on real files.
 
-## a.cpp — `acm_equal_n` (ACM iterations, A == B)
+## Analysis (`analysis/`)
 
-Sweeps ACM's iteration count `N` from 10 to 300 (step 10) with `A == B` fixed, which
-routes `ftie/acm.{h,cpp}`'s `get_map` through the closed-form Fibonacci mapping
-(`mapping_equal`) rather than modular matrix exponentiation. Tests how permutation strength
-(and its cost) scales with iteration count in the `A == B` code path.
+Produced by `experiment/analyze.py` (`make experiment-analyze`, after
+`python3 -m venv .venv && .venv/bin/pip install -r experiment/requirements.txt`). It only reads the
+files above.
 
-## b.cpp — `acm_any_n` (ACM iterations, A != B)
+| File | Content |
+| --- | --- |
+| `report.txt` | Everything the script prints: integrity check, decision tables, size-free checks, descriptive tables, timing fits, a–e checks |
+| `f_decisions.csv` | Per type, test (χ², entropy, NPCR_ch, UACI) and pipeline: n, failures, cutoff, accept/reject; plus a pooled row per test |
+| `f_uniformity.csv` | KS tests of χ² p-values and z-scores per type, Kruskal–Wallis across types, Spearman against plaintext entropy |
+| `f_summary.csv` | Per type and pipeline: n, mean, SD, min, max of every metric |
+| `f_per_file.csv` | Per file: χ² p-value, NPCR_ch / UACI / avalanche z-scores, pass/fail per test, included flag |
+| `excluded.csv` | Files excluded by the 1,280-byte rule (one: `0074-jpg.jpg`, 302 B) |
+| `timing_fits.csv` | Linear (and, for a–e, quadratic) timing fits for f and a–e |
+| `ae_quality.csv` | a–e quality checks against the thresholds at $N = 1464$ |
+| `f_timing.png` | Encrypt and decrypt time vs plaintext size, both pipelines |
+| `f_entropy.png` | Entropy shortfall $8 - H$ vs size, raw and divided by its expected value |
+| `f_chi2_pvalues.png` | χ² p-value histograms per type and pipeline |
+| `f_statistics_by_type.png` | Per-file χ² p-values and NPCR_ch / UACI / avalanche z-scores by type |
+| `ae_timing.png` | a–e time vs the swept parameter |
 
-Same sweep as `a.cpp` (`N` from 10 to 300) but with `A != B`, forcing the general modular
-matrix exponentiation path (`mapping_general`) instead of the closed-form one. Isolates
-whether the two ACM mapping implementations diverge in quality/cost as `N` grows.
+## Older files
 
-## c.cpp — `acm_equal_a` (ACM matrix entry, A == B)
-
-Fixes `N = 50` and instead sweeps the shared matrix entry `A == B` across nearly the full
-`uint16_t` range (30 steps from 1 to `UINT16_MAX`), again exercising the closed-form
-`mapping_equal` path. Tests sensitivity to the ACM matrix parameter itself rather than
-iteration count.
-
-## d.cpp — `acm_any_ab` (ACM matrix entries, A != B)
-
-Same sweep as `c.cpp` (`A` from 1 to `UINT16_MAX`, `N = 50`), but `B = A + 1`, forcing the
-general `mapping_general` path. Companion to `c.cpp` for the `A != B` case.
-
-## e.cpp — `rt` (BBS key size)
-
-Fixes ACM params (`A`, `B` random, `N = 50`) and instead sweeps the BBS modulus size by
-iterating over all 30 rows of `bbs_params.csv` (prime bit-length 16→1024, i.e. modulus
-~32→2048 bits). The recorded independent variable is the modulus `m = p*q` itself (decimal
-string, `bits` column header despite holding the modulus value). Named `rt` because this is
-the axis that stresses the RT/BBS keystream side of the pipeline (key/modulus size) rather
-than ACM.
-
-## old f.cpp — `plainfile` (input size), retired: `f_size_sweep.csv`
-
-`experiment/f.cpp` is now the corpus experiment (real files from a manifest, one row per
-file, output `f.csv`); see `experiment/METHODOLOGY.md`. The synthetic size sweep below was
-replaced by it (decision 7 / O8 in `new-experiment.md`), and its results were renamed from
-`f.csv`/`f.stderr.log` to `f_size_sweep.csv`/`f_size_sweep.stderr.log` so they are kept.
-
-Fixes BBS params (largest/last row) and ACM params (`A`, `B` random, `N = 50`), and instead
-sweeps the plaintext size from 0.5 MB to 10 MB (step 0.5 MB, `mb * 100000` bytes per step).
-Tests how NPCR/entropy/avalanche and, especially, encrypt/decrypt timing scale with input
-file size for both pipelines.
+`f_size_sweep.csv` / `f_size_sweep.stderr.log` are the output of an older experiment f (plaintext
+0.5–10 MB of random bytes). The corpus experiment replaced it; it is not part of the results.

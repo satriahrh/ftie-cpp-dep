@@ -1,0 +1,2 @@
+type,file_name,size_bytes,cipher_bytes,excluded_from
+JPG,0074-jpg.jpg,302,768,plainfile entropy/chi2; all cipherimage tests

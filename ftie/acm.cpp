@@ -144,7 +144,7 @@ uint16_t iroot_long(uint32_t n) {
   return uint16_t(xkp1);
 }
 
-std::vector<uint32_t> get_map_deprecated(
+std::vector<uint32_t> get_map_previous(
   uint32_t a, uint32_t b, uint32_t n_t
 ) {
   uint16_t N = iroot_long(n_t) + 1;
@@ -161,7 +161,7 @@ std::vector<uint32_t> get_map_deprecated(
   return M;
 }
 
-void validation_deprecated(
+void validation_previous(
   uint16_t a, uint16_t b, uint16_t n,
   std::vector<uint8_t> text
 ) {
@@ -209,16 +209,16 @@ namespace ftie {
     }
   }
 
-  namespace deprecated {
+  namespace previous {
     namespace acm {
       std::vector<uint8_t> encrypt(
         uint16_t a, uint16_t b, uint16_t n,
         std::vector<uint8_t> plaintext
       ) {
-        validation_deprecated(a, b, n, plaintext);
+        validation_previous(a, b, n, plaintext);
         uint32_t n_t = plaintext.size();
         std::vector<uint8_t> ciphertext(n_t);
-        std::vector<uint32_t> map = get_map_deprecated(a, b, n_t);
+        std::vector<uint32_t> map = get_map_previous(a, b, n_t);
         for (uint16_t t = 0; t < n; t++) {
           for (uint32_t i = 0; i < n_t; i++) {
             ciphertext[i] = plaintext[map[i]];
@@ -232,10 +232,10 @@ namespace ftie {
         uint16_t a, uint16_t b, uint16_t n,
         std::vector<uint8_t> ciphertext
       ) {
-        validation_deprecated(a, b, n, ciphertext);
+        validation_previous(a, b, n, ciphertext);
         uint32_t n_t = ciphertext.size();
         std::vector<uint8_t> plaintext(n_t);
-        std::vector<uint32_t> map = get_map_deprecated(a, b, n_t);
+        std::vector<uint32_t> map = get_map_previous(a, b, n_t);
 
         for (uint16_t t = 0; t < n; t++) {
           for (uint32_t i = 0; i < n_t; i++) {

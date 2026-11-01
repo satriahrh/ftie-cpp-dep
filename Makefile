@@ -5,6 +5,8 @@ OUT ?= experiment/results/f.csv
 #   make EXTRA_FLAGS="-I/opt/homebrew/include -L/opt/homebrew/lib `libpng-config --cflags`" ...
 EXTRA_FLAGS ?=
 
+experiment-analyze:
+	.venv/bin/python experiment/analyze.py
 experiment-gen-params:
 	g++ -o bin/exp-gen-params.o -std=c++17 $(EXTRA_FLAGS) ftie/prime.cpp experiment/gen_params.cpp -lgmpxx -lgmp
 	./bin/exp-gen-params.o

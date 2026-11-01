@@ -3,7 +3,7 @@
 // of a-e.cpp's single-parameter sweeps over random plaintext (it replaces
 // the old synthetic f.cpp size sweep, decision 7 / O8). See
 // new-experiment.md for the requirements this implements (D1,D7,M1-M7,O1-O3,O6)
-// and experiment/METHODOLOGY.md §7.
+// and experiment/METHODOLOGY.md §6.
 //
 // Usage: ./bin/exp-f.o [manifest-csv] [output-csv]
 //   defaults: experiment/corpus_manifest.csv, experiment/results/f.csv
@@ -15,7 +15,7 @@
 // already-completed files (matched by sha256) rather than redoing them.
 // The key is drawn once on a run's first invocation and frozen so a
 // resumed run never mixes two keys across rows: BBS/ACM parameters in the
-// sidecar "<output-csv>.params", and the deprecated pipeline's random
+// sidecar "<output-csv>.params", and the previous pipeline's random
 // keystream in "<output-csv>.keystream" (its SHA-256 recorded in .params).
 #include "../experiment/manifest.h"
 #include "../experiment/sha256.h"
@@ -139,10 +139,10 @@ int main(int argc, char const *argv[]) {
     const std::string header =
       "type,subset,file_name,sha256,size_bytes,width,height,"
       "entropy_plain,chi2_plain,"
-      "npcr_dep,npcr_cur,npcr_ch_dep,npcr_ch_cur,uaci_dep,uaci_cur,"
-      "entropy_dep,entropy_cur,chi2_dep,chi2_cur,"
-      "avalanche_dep,avalanche_cur,"
-      "enc_dep_s,dec_dep_s,enc_cur_s,dec_cur_s,"
+      "npcr_previous,npcr_proposed,npcr_ch_previous,npcr_ch_proposed,uaci_previous,uaci_proposed,"
+      "entropy_previous,entropy_proposed,chi2_previous,chi2_proposed,"
+      "avalanche_previous,avalanche_proposed,"
+      "enc_previous_s,dec_previous_s,enc_proposed_s,dec_proposed_s,"
       "npcr_crit,uaci_crit_low,uaci_crit_high,entropy_crit";
 
     // Refuse to resume into a CSV with a different schema -- notably the
@@ -184,7 +184,7 @@ int main(int argc, char const *argv[]) {
       params.acm_b = tools::random_acm_parameter();
       params.acm_n = 50;
 
-      // Deprecated-pipeline keystream: rt::encrypt indexes it modulo its
+      // Previous-pipeline keystream: rt::encrypt indexes it modulo its
       // length, so size it past the largest padded plainfile (padding adds
       // well under 64 KiB at 10 MB) so it never wraps within a file; at
       // least 10,000,000 bytes, the a-e convention.
@@ -230,12 +230,12 @@ int main(int argc, char const *argv[]) {
         };
         tools::write_bit1_flipped(plainfile1.c_str(), paths.plain2.c_str());
 
-        tools::PipelineResult dep = tools::measure_deprecated(keystream, params.acm_a, params.acm_b, params.acm_n, plainfile1, paths);
-        tools::PipelineResult cur = tools::measure_current(params.p, params.q, params.s, params.acm_a, params.acm_b, params.acm_n, plainfile1, paths);
+        tools::PipelineResult prev = tools::measure_previous(keystream, params.acm_a, params.acm_b, params.acm_n, plainfile1, paths);
+        tools::PipelineResult prop = tools::measure_proposed(params.p, params.q, params.s, params.acm_a, params.acm_b, params.acm_n, plainfile1, paths);
 
         // Both pipelines pad/pack identically for a given plainfile, so
         // cipherimage dimensions are the same either way -- one read
-        // suffices (cipherimage1 here holds the _cur pipeline's output,
+        // suffices (cipherimage1 here holds the proposed pipeline's output,
         // written last).
         png::image<png::rgb_pixel> dims(paths.cipher1.c_str());
         uint32_t width = dims.get_width();
@@ -251,11 +251,11 @@ int main(int argc, char const *argv[]) {
         out << f.type << "," << f.subset << "," << f.file_name << "," << f.sha256 << "," << f.size_bytes << ","
             << width << "," << height << ","
             << entropy_plain << "," << chi2_plain << ","
-            << dep.npcr << "," << cur.npcr << "," << dep.npcr_ch << "," << cur.npcr_ch << ","
-            << dep.uaci << "," << cur.uaci << ","
-            << dep.entropy << "," << cur.entropy << "," << dep.chi2 << "," << cur.chi2 << ","
-            << dep.avalanche << "," << cur.avalanche << ","
-            << dep.enc_s << "," << dep.dec_s << "," << cur.enc_s << "," << cur.dec_s << ","
+            << prev.npcr << "," << prop.npcr << "," << prev.npcr_ch << "," << prop.npcr_ch << ","
+            << prev.uaci << "," << prop.uaci << ","
+            << prev.entropy << "," << prop.entropy << "," << prev.chi2 << "," << prop.chi2 << ","
+            << prev.avalanche << "," << prop.avalanche << ","
+            << prev.enc_s << "," << prev.dec_s << "," << prop.enc_s << "," << prop.dec_s << ","
             << npcr_crit << "," << uaci_crit.first << "," << uaci_crit.second << "," << entropy_crit << "\n";
         out.flush();
 
