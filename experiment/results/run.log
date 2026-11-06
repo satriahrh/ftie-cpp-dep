@@ -65,3 +65,24 @@
 [2026-10-16 18:07:50]   d: ok  duration=1530s  output=experiment/results/d.csv
 [2026-10-16 18:07:50]   e: ok  duration=1158s  output=experiment/results/e.csv
 [2026-10-16 18:07:50] === run_experiments.sh done ===
+[2026-11-05 14:42:19] === run_experiments.sh starting (letters: a b c d e, force=0, new_params=0) ===
+[2026-11-05 14:42:19] reusing existing experiment/bbs_params.csv
+[2026-11-05 14:42:19] building all experiment binaries (make experiment-build-all)
+[2026-11-05 14:42:39] build OK
+[2026-11-05 14:42:39] starting experiment a
+[2026-11-05 15:19:47] finished experiment a in 2228s (exit 0)
+[2026-11-05 15:19:47] starting experiment b
+[2026-11-05 15:55:41] finished experiment b in 2154s (exit 0)
+[2026-11-05 15:55:41] starting experiment c
+[2026-11-05 16:21:47] finished experiment c in 1566s (exit 0)
+[2026-11-05 16:21:47] starting experiment d
+[2026-11-05 16:47:49] finished experiment d in 1562s (exit 0)
+[2026-11-05 16:47:49] starting experiment e
+[2026-11-05 17:07:21] finished experiment e in 1172s (exit 0)
+[2026-11-05 17:07:21] === summary ===
+[2026-11-05 17:07:21]   a: ok  duration=2228s  output=experiment/results/a.csv
+[2026-11-05 17:07:21]   b: ok  duration=2154s  output=experiment/results/b.csv
+[2026-11-05 17:07:21]   c: ok  duration=1566s  output=experiment/results/c.csv
+[2026-11-05 17:07:21]   d: ok  duration=1562s  output=experiment/results/d.csv
+[2026-11-05 17:07:21]   e: ok  duration=1172s  output=experiment/results/e.csv
+[2026-11-05 17:07:21] === run_experiments.sh done ===
